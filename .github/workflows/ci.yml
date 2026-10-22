@@ -1,6 +1,6 @@
 name: CI
 
-#  WHAT THIS CHECKS, AND WHAT IT DELIBERATELY DOES NOT
+# WHAT THIS CHECKS, AND WHAT IT DELIBERATELY DOES NOT
 # Lint, the unit tests and a real Docker build of the integration. Those three
 # are what a Gladys integration actually has to satisfy: the manifest is
 # validated by the store indexer, the image has to build and run, and the tests
