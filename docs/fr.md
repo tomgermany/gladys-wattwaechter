@@ -1,67 +1,98 @@
-# Template de démonstration
+# WattWächter Plus
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+Une intégration [Gladys Assistant](https://gladysassistant.com/) qui lit votre compteur électrique à
+travers un **WattWächter Plus**. Tout reste sur votre réseau local : pas de cloud, pas de compte.
 
-## Ce que vous obtenez
+## Prérequis : activer Modbus
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+**Le serveur Modbus est désactivé par défaut dans le WattWächter et doit d'abord être activé.** Sans
+cette étape, l'appareil ne répond pas sur le port 502 et l'intégration ne peut rien lire.
 
-## Configuration
+Ouvrez l'interface web du WattWächter, utilisez l'**explorateur d'API**, choisissez l'endpoint
+`POST /api/v1/settings` et envoyez ce contenu :
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+```json
+{ "modbus": { "enable": true, "port": 502 } }
+```
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+Ne changez le port que s'il est déjà occupé. Le port choisi se saisit ensuite dans la configuration de
+l'intégration.
 
-## Actions
+## Installation
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+1. Dans Gladys, ouvrez **Intégrations** et installez le **WattWächter Plus**.
+2. Ouvrez son écran **Configuration**.
+3. Saisissez l'adresse de l'appareil : son IP, par exemple `192.168.0.6`, ou le nom mDNS
+   `wattwaechter-xxxxxxxxxxxx.local`.
+4. Saisissez le port Modbus, 502 par défaut.
+5. Saisissez le **jeton de lecture de l'API REST** pour les totaux de période du widget. Sans jeton,
+   tout fonctionne sauf les quatre boutons de période.
+6. Appuyez sur **Tester la connexion**. La réponse indique le modèle, le firmware, le nombre de mesures
+   et la puissance actuelle.
+7. Lancez une recherche dans l'onglet **Découverte** et créez l'appareil trouvé.
+
+## Ce que l'appareil fournit
+
+Tout est en lecture seule : un compteur mesure, il ne connaît aucune commande.
+
+| Fonction | Signification |
+| --- | --- |
+| Puissance | La consommation actuelle en watts. **Positif = consommation, négatif = injection.** |
+| Index consommation | L'index cumulé en kWh, pour la surveillance d'énergie. |
+| Index injection | L'index cumulé de l'injection en kWh. |
+| Puissance L1 à L3 | La puissance par phase. |
+| Tension L1 à L3 | La tension par phase, en volts. |
+| Courant L1 à L3 | Le courant par phase, en ampères. |
+| Fréquence | La fréquence du réseau, en hertz. |
+
+Une mesure que le compteur ne fournit pas ne crée aucune fonction. Un compteur qui ne connaît que deux
+phases n'a donc pas de L3, plutôt qu'un zéro qui serait faux.
+
+## Le widget « Compteur électrique »
+
+- **La puissance** en grande tuile, avec le signe du compteur. En injection, la tuile devient verte.
+- **Le numéro de compteur**, pour savoir de quel compteur il s'agit.
+- **Quatre boutons :** aujourd'hui, 7 jours, 30 jours, 365 jours. La période choisie est mise en
+  évidence et sa consommation s'affiche en dessous, en kWh.
+
+Dans les réglages de la tuile, vous pouvez aussi choisir quel compteur l'alimente et si les totaux
+apparaissent en kWh ou en Wh.
 
 ## Scènes
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+**Le déclencheur « La puissance franchit une limite »** se déclenche quand la puissance dépasse la
+limite haute ou descend sous la limite basse. Les limites se règlent dans la configuration ; 0
+désactive le côté concerné. La limite basse peut être négative, car l'injection est une puissance
+négative.
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+Le déclencheur se déclenche **une fois par franchissement**, pas à chaque mesure. Il faut que la
+puissance s'éloigne à nouveau de la limite avant un nouveau déclenchement. Pour une simple condition
+« puissance au-dessus de X », le déclencheur « l'état d'un appareil change » de Gladys suffit.
 
-## Tableau de bord
+**L'action « Lire les index du compteur »** lit l'appareil maintenant et transmet puissance,
+consommation, injection et numéro de compteur aux étapes suivantes.
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+**L'action « Lire le total d'une période »** additionne la consommation sur une période et la renvoie.
+Nécessite le jeton de lecture.
 
-## Dépannage
+## Comment ça marche
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+Deux chemins vers le même appareil, et les deux sont nécessaires :
+
+- **Modbus TCP** fournit les mesures. Il ne répond qu'aux codes de lecture `0x03` et `0x04`, et il ne
+  connaît que le présent. L'appareil accepte au maximum deux clients à la fois.
+- **L'API REST** fournit les périodes, car elle seule sait ce qui a été consommé hier. Elle nécessite
+  le jeton de lecture et fonctionne sur le port 80.
+
+L'intégration lit les registres selon le standard **SunSpec**. À partir du firmware 1.2.1, les valeurs
+sont aussi disponibles en flottants, et ce chemin est utilisé quand il répond ; sinon les entiers sont
+mis à l'échelle dans l'intégration. La valeur que SunSpec réserve pour « ce compteur ne fournit pas
+cette mesure » est filtrée et jamais publiée.
+
+## Mention légale
+
+Ce projet est **indépendant et non officiel**. Il **n'est ni affilié à Smart Circuits GmbH** ni à
+WattWächter, et n'est ni autorisé, ni soutenu, ni sponsorisé par eux. **WattWächter** est une marque de
+son propriétaire respectif et n'est utilisée ici que pour nommer l'appareil avec lequel cette
+intégration fonctionne. Toutes les autres marques, noms de produits et de sociétés appartiennent à
+leurs propriétaires respectifs.
