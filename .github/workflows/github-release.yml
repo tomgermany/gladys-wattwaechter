@@ -1,0 +1,38 @@
+name: GitHub Release
+
+# A GitHub Release for every version tag.
+#
+# This exists as its own workflow so a tag pushed by hand still produces release
+# notes: the Release workflow publishes its own, but a manual `git tag v1.1.0 &&
+# git push --tags` would otherwise create a tag with no release behind it.
+#
+# The Gladys supervision page links each installed version to the repository's
+# releases, so an empty tag means a user clicking "what changed?" finds nothing.
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          # If the Release workflow already published notes for this tag,
+          # gh release create fails and nothing is lost: `|| true` keeps the
+          # workflow green in that expected case.
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes || true
+          echo "Release for v${version} handled."
