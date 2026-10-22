@@ -3,10 +3,10 @@
   "type": "device",
   "name": "WattWächter Plus",
   "description": {
-    "de": "Liest den WattWächter Plus über Modbus TCP und zeigt Leistung, Netzbezug und Einspeisung in Gladys Assistant.",
-    "en": "Reads the WattWächter Plus over Modbus TCP and shows power, consumption and feed-in in Gladys Assistant.",
-    "fr": "Lit le WattWächter Plus via Modbus TCP et affiche la puissance, la consommation et l'injection dans Gladys Assistant.",
-    "es": "Lee el WattWächter Plus por Modbus TCP y muestra potencia, consumo y vertido en Gladys Assistant."
+    "de": "Liest den WattWächter Plus und zeigt Leistung, Netzbezug und Einspeisung in Gladys Assistant.",
+    "en": "Reads the WattWächter Plus and shows power, consumption and feed-in in Gladys Assistant.",
+    "fr": "Lit le WattWächter Plus et affiche la puissance, la consommation et l'injection dans Gladys Assistant.",
+    "es": "Lee el WattWächter Plus y muestra potencia, consumo y vertido en Gladys Assistant."
   },
   "version": "1.2.0",
   "docker_image": "ghcr.io/tomgermany/gladys-wattwaechter:1.2.0",
