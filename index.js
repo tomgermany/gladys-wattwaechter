@@ -39,6 +39,12 @@
 // occupied slot. One deliberate retry on a fresh socket rides it out; more would
 // only hammer the device.
 //
+// WHEN A RETRY FAILS TOO, THE ORIGINAL ERROR IS CARRIED ALONG
+// `withConnection` throws its own "no connection" error when the second attempt
+// also fails. That message on its own says nothing about why the first attempt
+// failed, which is the part worth reading. The original error is therefore
+// attached as `cause`, so the log keeps both: what was tried, and why it broke.
+//
 // SDK: @gladysassistant/integration-sdk ^0.15 (Gladys >= 5.1.0).
 // -----------------------------------------------------------------------------
 
@@ -194,10 +200,18 @@ async function refresh() {
  * first attempt after a restart can then hit a slot that is still occupied. One
  * deliberate retry on a fresh socket rides that out; anything beyond one retry
  * would just hammer the device.
+ *
+ * WHY THE ORIGINAL ERROR IS CARRIED ALONG
+ * When the retry fails as well, the error thrown here would otherwise say only
+ * "no connection" — which is the symptom, not the cause. The error from the
+ * first attempt is attached as `cause`, so a reader of the log sees what was
+ * tried and why it broke.
  */
 async function withConnection(task) {
   if (!modbus) {
-    if (!(await connectDevice())) throw new Error('Keine Verbindung zum WattWächter');
+    if (!(await connectDevice())) {
+      throw new Error('Keine Verbindung zum WattWächter');
+    }
   }
   try {
     return await task(modbus);
@@ -207,7 +221,11 @@ async function withConnection(task) {
     logger.warn(`Read failed (${err.message}) -> one retry on a fresh connection`);
     modbus?.transport?.reset();
     modbus = null;
-    if (!(await connectDevice())) throw new Error('Keine Verbindung zum WattWächter');
+    if (!(await connectDevice())) {
+      throw new Error('Keine Verbindung zum WattWächter nach einem zweiten Versuch', {
+        cause: err,
+      });
+    }
     return await task(modbus);
   }
 }
