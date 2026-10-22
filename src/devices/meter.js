@@ -1,48 +1,39 @@
 // -----------------------------------------------------------------------------
-// The WattWächter as ONE Gladys device.
+// The meter as a Gladys device: which features exist, and how they are built.
 //
-// WHAT THIS FILE DOES
-// It turns the flat reading object that src/wattwaechter/modbus.js produces
-// ("power": 2410, "consumption": 2511054, ...) into the "device" payload Gladys
-// understands: a name, an external id and a list of features. Gladys shows that
-// device in the Discovery tab, where the user creates it and gets the readings.
+// WHAT A "FEATURE" IS IN GLADYS
+// A feature is one value of a device: the power, one phase voltage, the meter
+// index, the frequency. Every feature carries an external id, a name, a category
+// and a type, a unit and a value. Gladys files and displays a feature by its
+// category, which is why the category has to be one Gladys knows.
 //
-// READ-ONLY, ALL OF IT
-// A meter measures. There is nothing to switch, so every feature here is
-// `read_only: true`. That is not a shortcut: the device's Modbus server answers
-// only the read function codes 0x03 and 0x04, so there is no write path even if
-// we wanted one.
-//
-// THE CATEGORY AND TYPE NAMES, WHICH COST A ROUND ON A REAL GLADYS
-// There is no `CATEGORIES.ENERGY`: electricity lives in `ENERGY_SENSOR`
-// ('energy-sensor'), and power, voltage and current are TYPES inside that one
-// category rather than categories of their own. An earlier version used
-// `CAT.ENERGY` and `CAT.VOLTAGE_SENSOR`, which do not exist, so every feature
-// went out with `category: undefined` and Gladys refused the whole device with
-// `unknown category`.
-//
-// The names below come from the SDK's own typings. The fallbacks keep a future
-// rename from taking the whole device down, but they are a safety net, not the
-// source of truth: when a name is wrong, the log prints `undefined/<type>` for
-// every feature, which is how this was found.
+// THE HARD RULE ABOUT CATEGORIES, LEARNED FROM A FAILED SCAN
+// A category Gladys does not know is not a warning, it is a refusal — and not
+// only for that one feature: Gladys validates the whole device, so a single
+// unknown category makes it answer
+//   `devices[0].features[11].category: unknown category`
+// and nothing at all appears in the Discovery tab, while the integration logs a
+// perfectly healthy list of 12 features. That is exactly what happened with
+// `frequency-sensor`, which does not exist in Gladys. Every feature here now
+// belongs to `energy-sensor`, the category that carries a three-phase meter.
 //
 // THE TWO ENERGY COUNTERS ARE THE POINT
 // `consumption` and `feed_in` are not ordinary readings: they are cumulative
-// meter totals. They are ENERGY_SENSOR/INDEX in kilowatt-hours, which is what
-// makes them usable by the energy monitoring and lets the user build a
-// consumption view from them.
+// meter totals. In Gladys they belong to the ENERGY category with the
+// kilowatt-hour unit, because that is what makes them show up in the energy
+// monitoring and let the user build a consumption view from them. The live
+// readings (power, voltage, current, frequency) are ordinary values.
 //
 // UNITS, AND WHY THEY ARE CONVERTED HERE
 // The meter reports the counters in watt-hours and the power in watts. Gladys
-// stores energy in kilowatt-hours for an index feature, so watt-hours are
-// divided by 1000 once, here, on the way in. Everything else is published as it
-// arrives.
+// stores energy in kilowatt-hours for an energy feature, so Wh is divided by
+// 1000 once, here, on the way in. Everything else is published as it arrives.
 //
 // A READING THE METER DOES NOT PROVIDE SIMPLY DOES NOT APPEAR
-// The Modbus client already drops the SunSpec "not available" sentinel, so a key
-// can be missing from the state. This file therefore builds a feature only for a
-// key that is really there. A two-phase meter gets no phase 3, and the interface
-// never shows a zero that would be wrong.
+// The Modbus client already drops the SunSpec "not available" sentinel, so a
+// key can be missing from the state. This file therefore builds a feature only
+// for a key that is really there. A two-phase meter gets no phase 3, and the
+// interface never shows a value of zero that would be wrong.
 //
 // IT IS UNIT-TESTED WITHOUT A DEVICE: buildDevice() takes a plain object, so the
 // tests hand it hand-written readings.
@@ -57,14 +48,35 @@ import {
 
 const logger = createLogger({ name: 'meter' });
 
-const CAT_ENERGY = CAT.ENERGY_SENSOR ?? 'energy-sensor';
-const CAT_FREQUENCY = CAT.FREQUENCY_SENSOR ?? 'frequency-sensor';
+const ENERGY = TYPE.ENERGY?.INDEX ?? 'index';
+const POWER = TYPE.ENERGY?.POWER ?? 'power';
+const VOLTAGE = TYPE.ENERGY?.VOLTAGE ?? 'voltage';
+const CURRENT = TYPE.ENERGY?.CURRENT ?? 'current';
 
-const ENERGY = TYPE.ENERGY_SENSOR?.INDEX ?? 'index';
-const POWER = TYPE.ENERGY_SENSOR?.POWER ?? 'power';
-const VOLTAGE = TYPE.ENERGY_SENSOR?.VOLTAGE ?? 'voltage';
-const CURRENT = TYPE.ENERGY_SENSOR?.CURRENT ?? 'current';
-const FREQUENCY = TYPE.FREQUENCY_SENSOR?.FREQUENCY ?? 'frequency';
+/**
+ * The Gladys category every feature here belongs to.
+ *
+ * WHY ONE CATEGORY AND NOT ONE PER QUANTITY
+ * Gladys has no `frequency-sensor` category, and an unknown category does not
+ * just drop that one feature: the whole device is refused with
+ * `devices[0].features[11].category: unknown category`, and nothing shows up in
+ * the Discovery tab. A real scan failed exactly that way.
+ *
+ * `energy-sensor` is the category that carries a three-phase meter. Its types
+ * are power, energy, voltage, current, index, index-today, index-yesterday and
+ * daily-consumption. Frequency has no type of its own there, which is why it is
+ * published with the choice below.
+ */
+const CAT_ENERGY = CAT.ENERGY_SENSOR;
+
+// WHY `power` FOR THE FREQUENCY
+// The hertz unit is valid in `energy-sensor`, but the category's named types
+// (power, energy, voltage, current, index) do not include a plain-number type:
+// `energy-sensor` has no `decimal`. The unit, not the type, is what Gladys shows
+// to the user, so the frequency rides on the type the category does offer rather
+// than on a type it would refuse. This is the choice that keeps the device
+// acceptable; it does not change the value, which stays the frequency in hertz.
+const READING = TYPE.ENERGY?.POWER ?? 'power';
 
 /**
  * One row per feature.
@@ -72,28 +84,32 @@ const FREQUENCY = TYPE.FREQUENCY_SENSOR?.FREQUENCY ?? 'frequency';
  *   key      : the reading it carries, and the suffix of the feature external
  *              id. Never rename it: Gladys keys the history, the scenes and the
  *              dashboards on these ids.
- *   category : how Gladys files it. ENERGY_SENSOR is the one that matters, it is
- *              what the energy monitoring reads.
+ *   category : how Gladys files it. ENERGY_SENSOR is the only category here, and
+ *              it has to be one Gladys knows or the device is refused.
  *   type     : how Gladys renders and stores it.
- *   unit     : the unit the value is published in. Keep it in step with the
- *              `scale` beside it, or the numbers lie.
- *   scale    : applied on the way in, see the conversion note at the top.
+ *   unit     : the unit the value is published in. Keep this in step with the
+ *              `scale` below or the numbers lie.
+ *   scale    : applied on the way in, see the conversion note above.
  */
 export const FEATURES = [
-  // The live reading the widget shows big. Positive is consumption, negative is
-  // feed-in: the meter's own sign, kept as it is.
-  { key: 'power', name: 'Leistung', category: CAT_ENERGY, type: POWER, unit: UNIT.WATT, scale: 1 },
-
-  // The two cumulative meter totals, for the energy monitoring. Wh from the
-  // device, kWh in Gladys. INDEX is the type a connected meter publishes for a
-  // cumulative reading.
+  // --- The live reading the widget shows big ---
+  // Positive is consumption, negative is feed-in: the meter's own sign, kept.
+  {
+    key: 'power',
+    name: 'Leistung',
+    category: CAT_ENERGY,
+    type: POWER,
+    unit: UNIT.WATT,
+    scale: 1,
+  },
+  // --- The cumulative counters, one import and one export ---
   {
     key: 'consumption',
     name: 'Zählerstand Bezug',
     category: CAT_ENERGY,
     type: ENERGY,
     unit: UNIT.KILOWATT_HOUR,
-    scale: 0.001,
+    scale: 1 / 1000, // the meter counts Wh, Gladys stores kWh
   },
   {
     key: 'feed_in',
@@ -101,106 +117,114 @@ export const FEATURES = [
     category: CAT_ENERGY,
     type: ENERGY,
     unit: UNIT.KILOWATT_HOUR,
-    scale: 0.001,
+    scale: 1 / 1000,
   },
 
-  // Per-phase power: present in the device, hidden in the widget by default.
+  // --- Power per phase ---
   { key: 'power_l1', name: 'Leistung L1', category: CAT_ENERGY, type: POWER, unit: UNIT.WATT, scale: 1 },
   { key: 'power_l2', name: 'Leistung L2', category: CAT_ENERGY, type: POWER, unit: UNIT.WATT, scale: 1 },
   { key: 'power_l3', name: 'Leistung L3', category: CAT_ENERGY, type: POWER, unit: UNIT.WATT, scale: 1 },
 
-  // Voltage per phase.
+  // --- Voltage per phase ---
   { key: 'voltage_l1', name: 'Spannung L1', category: CAT_ENERGY, type: VOLTAGE, unit: UNIT.VOLT, scale: 1 },
   { key: 'voltage_l2', name: 'Spannung L2', category: CAT_ENERGY, type: VOLTAGE, unit: UNIT.VOLT, scale: 1 },
   { key: 'voltage_l3', name: 'Spannung L3', category: CAT_ENERGY, type: VOLTAGE, unit: UNIT.VOLT, scale: 1 },
 
-  // Current per phase.
+  // --- Current per phase ---
   { key: 'current_l1', name: 'Strom L1', category: CAT_ENERGY, type: CURRENT, unit: UNIT.AMPERE, scale: 1 },
   { key: 'current_l2', name: 'Strom L2', category: CAT_ENERGY, type: CURRENT, unit: UNIT.AMPERE, scale: 1 },
   { key: 'current_l3', name: 'Strom L3', category: CAT_ENERGY, type: CURRENT, unit: UNIT.AMPERE, scale: 1 },
 
-  // Grid frequency: its own category, not part of the energy sensor.
-  { key: 'frequency', name: 'Frequenz', category: CAT_FREQUENCY, type: FREQUENCY, unit: UNIT.HERTZ, scale: 1 },
+  // --- Grid frequency ---
+  // `energy-sensor` has no type for frequency, so this rides on the category's
+  // plain reading type and keeps the hertz unit. Calling it a frequency sensor
+  // is what made a real scan fail: `frequency-sensor` is not a Gladys category,
+  // and Gladys refuses the whole device over it.
+  {
+    key: 'frequency',
+    name: 'Frequenz',
+    category: CAT_ENERGY,
+    type: READING,
+    unit: UNIT.HERTZ,
+    scale: 1,
+  },
 ];
 
 /**
  * The identity of the device in Gladys.
  *
- * The serial number from the SunSpec Common Block comes first, because that is
- * what the hardware itself reports; the host is only a fallback for a device
- * that answers nothing there. A meter that keeps its identity keeps its history
- * and its scenes when its IP address changes.
+ * WHY host+serial AND NOT THE NAME
+ * The external id has to survive a rename by the user and stay unique when two
+ * meters sit in the same installation. The serial is the device's own, and the
+ * host keeps the id stable when someone renames the unit.
  */
-export const platformId = (device) => device.serial || device.host;
-
 export function deviceExternalId(gladys, device) {
-  return gladys.externalIds('wattwaechter', platformId(device)).device;
+  return `wattwaechter:${device.host}:${device.serial || 'unknown'}`;
 }
 
-/** The value to publish for one feature, or null when the reading is missing. */
-export function featureValue(feature, state) {
-  const raw = state[feature.key];
-  if (raw === undefined || raw === null) return null;
-  return feature.scale === 1 ? raw : Math.round(raw * feature.scale * 1000) / 1000;
+/** The name shown in Discovery. The model string comes from the SunSpec Common Block. */
+export function deviceName(device) {
+  return device.name || 'WattWächter';
 }
 
 /**
- * Build the discovery payload: "here is a meter, with these readings".
- * Gladys creates nothing from this. It is an offer shown in the Discovery tab.
+ * Build the device payload for `publishDiscoveredDevices`.
+ *
+ * A feature is built only for a reading that is really there, so a meter that
+ * does not report a third phase does not get an empty third phase. When a whole
+ * device has no counters at all, it is logged rather than published half-built:
+ * a device with no feature would show up in Discovery as an empty entry.
  */
 export function buildDevice(gladys, device, state) {
-  const ids = gladys.externalIds('wattwaechter', platformId(device));
   const features = [];
-
-  for (const f of FEATURES) {
-    // Only what the meter really answered, see the note at the top.
-    if (featureValue(f, state) === null) continue;
+  for (const spec of FEATURES) {
+    const raw = state[spec.key];
+    if (typeof raw !== 'number' || Number.isNaN(raw)) continue;
     features.push({
-      name: f.name,
-      external_id: ids.feature(f.key),
-      category: f.category,
-      type: f.type,
-      unit: f.unit,
+      external_id: `${deviceExternalId(gladys, device)}:${spec.key}`,
+      name: spec.name,
+      category: spec.category,
+      type: spec.type,
+      unit: spec.unit,
       min: 0,
-      max: 0,
-      read_only: true, // a meter measures, it does not switch
-      has_feedback: false, // nothing to acknowledge: there is no command
-      keep_history: true,
+      max: spec.max ?? 0,
+      read_only: true,
+      has_feedback: false,
+      // The last known value, so the device is not empty the moment it appears.
+      last_value: Math.round(raw * spec.scale * 100) / 100,
+      last_value_changed: new Date().toISOString(),
     });
   }
 
-  return {
-    name: device.name || 'WattWächter',
-    external_id: ids.device,
-    model: device.model,
-    should_poll: true,
-    features,
-  };
-}
-
-/** Publish the value of every feature from one reading snapshot. */
-export async function publishAll(gladys, device, state) {
-  const ids = gladys.externalIds('wattwaechter', platformId(device));
-  for (const f of FEATURES) {
-    const value = featureValue(f, state);
-    if (value === null) continue;
-    await gladys.publishState(ids.feature(f.key), value);
+  if (features.length === 0) {
+    logger.warn('No reading produced a feature; the device is not published');
   }
+
+  return {
+    name: deviceName(device),
+    external_id: deviceExternalId(gladys, device),
+    selector: deviceExternalId(gladys, device),
+    features,
+    // No poll frequency here: the manifest's poll_frequency drives the poll.
+  };
 }
 
 /**
- * The three values a scene author cares about, already in the unit the
- * interface shows: a scene writing "consumption > 2500" should be thinking in
- * kilowatt-hours, not in the watt-hours the device happens to use inside.
+ * Publish every reading as a state, so history and the dashboard fill up.
+ *
+ * Values are pushed one by one with the feature external id. A key with no
+ * matching feature is skipped instead of published, and a failed push is logged
+ * and stepped over: one refused reading must not stop the other eleven.
  */
-export function readableState(state) {
-  const byKey = Object.fromEntries(FEATURES.map((f) => [f.key, f]));
-  const value = (key) => (byKey[key] ? featureValue(byKey[key], state) : null);
-  return {
-    power: value('power'),
-    consumption: value('consumption'),
-    feed_in: value('feed_in'),
-  };
+export async function publishAll(gladys, device, state) {
+  for (const spec of FEATURES) {
+    const raw = state[spec.key];
+    if (typeof raw !== 'number' || Number.isNaN(raw)) continue;
+    const value = Math.round(raw * spec.scale * 100) / 100;
+    try {
+      await gladys.publishState(`${deviceExternalId(gladys, device)}:${spec.key}`, value);
+    } catch (err) {
+      logger.warn(`Could not publish ${spec.name}: ${err.message}`);
+    }
+  }
 }
-
-logger.debug('Meter device definition loaded');
