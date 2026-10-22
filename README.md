@@ -6,6 +6,8 @@ meter through a **WattWächter Plus**, over your local network. No cloud, no acc
 **[Anwenderdokumentation auf Deutsch](docs/de.md)** · [English](docs/en.md) ·
 [Français](docs/fr.md) · [Español](docs/es.md) · **[Übersicht: was was bedeutet](docs/overview.md)**
 
+![Integration](cover.png)
+
 ## Before you start: switch Modbus on
 
 **The Modbus server is switched OFF by default in the WattWächter and has to be enabled first.**
