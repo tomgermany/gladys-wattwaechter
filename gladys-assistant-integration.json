@@ -3,10 +3,10 @@
   "type": "device",
   "name": "WattWächter Plus",
   "description": {
-    "de": "Liest den Stromzähler über den WattWächter Plus: Verbrauch, Einspeisung und Zählerstände.",
-    "en": "Reads your electricity meter through the WattWächter Plus: consumption, feed-in and meter readings.",
-    "fr": "Lit votre compteur électrique via le WattWächter Plus : consommation, injection et index.",
-    "es": "Lee tu contador eléctrico a través del WattWächter Plus: consumo, vertido y lecturas."
+    "de": "Liest den WattWächter Plus über Modbus TCP und zeigt Leistung, Netzbezug und Einspeisung in Gladys Assistant.",
+    "en": "Reads the WattWächter Plus over Modbus TCP and shows power, consumption and feed-in in Gladys Assistant.",
+    "fr": "Lit le WattWächter Plus via Modbus TCP et affiche la puissance, la consommation et l'injection dans Gladys Assistant.",
+    "es": "Lee el WattWächter Plus por Modbus TCP y muestra potencia, consumo y vertido en Gladys Assistant."
   },
   "version": "1.0.0",
   "docker_image": "ghcr.io/tomgermany/gladys-wattwaechter:1.0.0",
@@ -18,21 +18,22 @@
       "key": "intro",
       "type": "section",
       "label": {
-        "de": "Verbindung zum WattWächter",
-        "en": "Connection to the WattWächter",
-        "fr": "Connexion au WattWächter",
-        "es": "Conexión al WattWächter"
+        "de": "WattWächter Plus verbinden",
+        "en": "Connect the WattWächter Plus",
+        "fr": "Connecter le WattWächter Plus",
+        "es": "Conectar el WattWächter Plus"
       },
       "description": {
-        "de": "Der Modbus-Server muss im WattWächter erst eingeschaltet werden: Weboberfläche öffnen, API-Explorer, den Endpunkt POST /api/v1/settings mit {\"modbus\": {\"enable\": true, \"port\": 502}} senden. Ohne diesen Schritt antwortet das Gerät auf Modbus nicht.",
-        "en": "The Modbus server has to be switched on in the WattWächter first: open its web interface, use the API explorer, and POST /api/v1/settings with {\"modbus\": {\"enable\": true, \"port\": 502}}. Without that step the device does not answer on Modbus.",
-        "fr": "Le serveur Modbus doit d'abord être activé dans le WattWächter : ouvrez son interface web, utilisez l'explorateur d'API et envoyez POST /api/v1/settings avec {\"modbus\": {\"enable\": true, \"port\": 502}}. Sans cette étape, l'appareil ne répond pas en Modbus.",
-        "es": "El servidor Modbus debe activarse primero en el WattWächter: abre su interfaz web, usa el explorador de API y envía POST /api/v1/settings con {\"modbus\": {\"enable\": true, \"port\": 502}}. Sin ese paso el aparato no responde por Modbus."
+        "de": "Der Modbus-TCP-Server des Geräts ist ab Werk ausgeschaltet. Schalte ihn zuerst in der Weboberfläche des WattWächters unter Einstellungen → Modbus TCP ein, sonst kann die Integration keine Werte lesen. Adresse und Port stehen dort ebenfalls.",
+        "en": "The device's Modbus TCP server is switched off at the factory. Turn it on first in the WattWächter's web interface under Settings → Modbus TCP, otherwise the integration cannot read any values. The address and port are shown there too.",
+        "fr": "Le serveur Modbus TCP de l'appareil est désactivé en usine. Activez-le d'abord dans l'interface web du WattWächter sous Réglages → Modbus TCP, sinon l'intégration ne peut lire aucune valeur. L'adresse et le port y figurent aussi.",
+        "es": "El servidor Modbus TCP del aparato está desactivado de fábrica. Actívalo primero en la interfaz web del WattWächter en Ajustes → Modbus TCP, si no la integración no puede leer ningún valor. La dirección y el puerto también aparecen ahí."
       }
     },
     {
       "key": "host",
       "type": "string",
+      "required": true,
       "label": {
         "de": "Adresse des WattWächters",
         "en": "WattWächter address",
@@ -40,22 +41,17 @@
         "es": "Dirección del WattWächter"
       },
       "description": {
-        "de": "IP-Adresse oder mDNS-Name, z. B. 192.168.0.6 oder wattwaechter-xxxxxxxxxxxx.local.",
-        "en": "IP address or mDNS name, e.g. 192.168.0.6 or wattwaechter-xxxxxxxxxxxx.local.",
-        "fr": "Adresse IP ou nom mDNS, ex. 192.168.0.6 ou wattwaechter-xxxxxxxxxxxx.local.",
-        "es": "Dirección IP o nombre mDNS, p. ej. 192.168.0.6 o wattwaechter-xxxxxxxxxxxx.local."
-      },
-      "placeholder": {
-        "de": "192.168.0.6",
-        "en": "192.168.0.6",
-        "fr": "192.168.0.6",
-        "es": "192.168.0.6"
-      },
-      "required": true
+        "de": "IP-Adresse oder mDNS-Name, zum Beispiel wattwaechter-XXXXXXXXXXXX.local. Eine feste IP per DHCP-Reservierung im Router ist robuster als der mDNS-Name.",
+        "en": "IP address or mDNS name, for example wattwaechter-XXXXXXXXXXXX.local. A fixed IP via a DHCP reservation in the router is more robust than the mDNS name.",
+        "fr": "Adresse IP ou nom mDNS, par exemple wattwaechter-XXXXXXXXXXXX.local. Une IP fixe via une réservation DHCP dans le routeur est plus robuste que le nom mDNS.",
+        "es": "Dirección IP o nombre mDNS, por ejemplo wattwaechter-XXXXXXXXXXXX.local. Una IP fija mediante reserva DHCP en el router es más robusta que el nombre mDNS."
+      }
     },
     {
       "key": "modbus_port",
       "type": "number",
+      "required": false,
+      "default": 502,
       "label": {
         "de": "Modbus-Port",
         "en": "Modbus port",
@@ -63,110 +59,99 @@
         "es": "Puerto Modbus"
       },
       "description": {
-        "de": "Der Port des Modbus-Servers, standardmäßig 502.",
-        "en": "The port of the Modbus server, default 502.",
-        "fr": "Le port du serveur Modbus, 502 par défaut.",
-        "es": "El puerto del servidor Modbus, 502 por defecto."
-      },
-      "required": false,
-      "default": 502,
-      "min": 1,
-      "max": 65535
+        "de": "Standard 502. Nur ändern, wenn der Port im Gerät umgestellt wurde.",
+        "en": "Default 502. Only change it if the port was changed on the device.",
+        "fr": "Par défaut 502. À modifier seulement si le port a été changé sur l'appareil.",
+        "es": "Por defecto 502. Cámbialo solo si el puerto se cambió en el aparato."
+      }
     },
     {
       "key": "read_token",
-      "type": "secret",
+      "type": "string",
+      "required": false,
       "label": {
-        "de": "Lesetoken der REST-API (nur nötig, wenn das Gerät Anmeldung verlangt)",
-        "en": "REST API read token (only if the device requires authentication)",
-        "fr": "Jeton de lecture de l'API REST (seulement si l'appareil exige une authentification)",
-        "es": "Token de lectura de la API REST (solo si el aparato exige autenticación)"
+        "de": "Lesetoken der REST-API (optional)",
+        "en": "REST API read token (optional)",
+        "fr": "Jeton de lecture de l'API REST (facultatif)",
+        "es": "Token de lectura de la API REST (opcional)"
       },
       "description": {
-        "de": "Leer lassen, wenn die Einstellung api_auth_required im Gerät ausgeschaltet ist. Dann funktionieren auch die Zeitraumknöpfe ohne Token.",
-        "en": "Leave empty when the device's api_auth_required setting is off. The period buttons then work without a token too.",
-        "fr": "Laisser vide si le réglage api_auth_required de l'appareil est désactivé. Les boutons de période fonctionnent alors sans jeton.",
-        "es": "Déjalo vacío si el ajuste api_auth_required del aparato está desactivado. Entonces los botones de periodo también funcionan sin token."
-      },
-      "required": false
+        "de": "Nur nötig für die Zeitraumwerte (Heute, 7, 30, 365 Tage) und die Szenenaktion 'Verbrauch eines Zeitraums lesen'. Ohne Token bleiben diese Knöpfe aus. Die API-Authentifizierung ist ab Werk aus; ist sie ausgeschaltet, kann das Feld leer bleiben.",
+        "en": "Only needed for the period totals (today, 7, 30, 365 days) and the 'read a period total' scene action. Without a token those buttons stay hidden. API authentication is off at the factory; if it is off, leave this empty.",
+        "fr": "Nécessaire uniquement pour les totaux de période (aujourd'hui, 7, 30, 365 jours) et l'action de scène « lire le total d'une période ». Sans jeton, ces boutons restent masqués. L'authentification de l'API est désactivée en usine ; si elle l'est, laissez vide.",
+        "es": "Solo hace falta para los totales de periodo (hoy, 7, 30, 365 días) y la acción de escena «leer el total de un periodo». Sin token, esos botones no aparecen. La autenticación de la API está desactivada de fábrica; si lo está, deja el campo vacío."
+      }
     },
     {
       "key": "poll_frequency",
       "type": "number",
+      "required": false,
+      "default": 60000,
       "label": {
-        "de": "Abfrageintervall (s)",
-        "en": "Refresh interval (s)",
-        "fr": "Intervalle de rafraîchissement (s)",
-        "es": "Intervalo de actualización (s)"
+        "de": "Abfrageintervall in Millisekunden",
+        "en": "Poll interval in milliseconds",
+        "fr": "Intervalle d'interrogation en millisecondes",
+        "es": "Intervalo de consulta en milisegundos"
       },
       "description": {
-        "de": "Wie oft die Messwerte gelesen werden, in Sekunden. Mindestens 60, ein Stromzähler braucht keine Sekundenabfrage.",
-        "en": "How often the readings are fetched, in seconds. 60 at least: an electricity meter does not need a per-second poll.",
-        "fr": "Fréquence de lecture des mesures, en secondes. 60 au minimum : un compteur électrique n'a pas besoin d'une lecture par seconde.",
-        "es": "Cada cuánto se leen las medidas, en segundos. 60 como mínimo: un contador eléctrico no necesita lectura por segundo."
-      },
-      "required": false,
-      "default": 60,
-      "min": 60,
-      "max": 3600
+        "de": "Wie oft die Werte gelesen werden. Erlaubt sind 1000, 2000, 10000, 15000, 30000 und 60000. Standard 60000, also einmal pro Minute.",
+        "en": "How often the values are read. Allowed values are 1000, 2000, 10000, 15000, 30000 and 60000. Default 60000, once a minute.",
+        "fr": "Fréquence de lecture des valeurs. Valeurs autorisées : 1000, 2000, 10000, 15000, 30000 et 60000. Par défaut 60000, une fois par minute.",
+        "es": "Con qué frecuencia se leen los valores. Valores permitidos: 1000, 2000, 10000, 15000, 30000 y 60000. Por defecto 60000, una vez por minuto."
+      }
     },
     {
       "key": "power_max",
       "type": "number",
+      "required": false,
+      "default": 0,
       "label": {
-        "de": "Leistungsgrenze oben (W)",
-        "en": "Power limit above (W)",
-        "fr": "Limite de puissance haute (W)",
-        "es": "Límite de potencia superior (W)"
+        "de": "Obergrenze für den Szenenauslöser in Watt",
+        "en": "Upper limit for the scene trigger in watts",
+        "fr": "Limite supérieure du déclencheur de scène en watts",
+        "es": "Límite superior del activador de escena en vatios"
       },
       "description": {
-        "de": "Löst den Auslöser aus, wenn die Leistung darüber steigt. 0 schaltet diese Seite ab.",
-        "en": "Fires the trigger when the power rises above this value. 0 disables this side.",
-        "fr": "Déclenche le déclencheur quand la puissance dépasse cette valeur. 0 désactive ce côté.",
-        "es": "Activa el disparador cuando la potencia supera este valor. 0 desactiva este lado."
-      },
-      "required": false,
-      "default": 3500,
-      "min": 0,
-      "max": 30000
+        "de": "Wird diese Leistung überschritten, meldet die Integration das Ereignis 'Leistungsgrenze überschritten'. 0 schaltet die Obergrenze ab.",
+        "en": "When this power is exceeded, the integration reports the 'power threshold crossed' event. 0 switches the upper limit off.",
+        "fr": "Au-delà de cette puissance, l'intégration signale l'événement « seuil de puissance franchi ». 0 désactive la limite supérieure.",
+        "es": "Si se supera esta potencia, la integración informa del evento «umbral de potencia superado». 0 desactiva el límite superior."
+      }
     },
     {
       "key": "power_min",
       "type": "number",
-      "label": {
-        "de": "Leistungsgrenze unten (W)",
-        "en": "Power limit below (W)",
-        "fr": "Limite de puissance basse (W)",
-        "es": "Límite de potencia inferior (W)"
-      },
-      "description": {
-        "de": "Löst den Auslöser aus, wenn die Leistung darunter fällt, also bei starker Einspeisung. 0 schaltet diese Seite ab. Negative Werte zulassen.",
-        "en": "Fires the trigger when the power drops below this value, i.e. strong feed-in. 0 disables this side. Negative values allowed.",
-        "fr": "Déclenche le déclencheur quand la puissance descend sous cette valeur, donc en forte injection. 0 désactive ce côté. Valeurs négatives acceptées.",
-        "es": "Activa el disparador cuando la potencia baja de este valor, es decir con vertido fuerte. 0 desactiva este lado. Se admiten valores negativos."
-      },
       "required": false,
       "default": 0,
-      "min": -30000,
-      "max": 30000
+      "label": {
+        "de": "Untergrenze für den Szenenauslöser in Watt",
+        "en": "Lower limit for the scene trigger in watts",
+        "fr": "Limite inférieure du déclencheur de scène en watts",
+        "es": "Límite inferior del activador de escena en vatios"
+      },
+      "description": {
+        "de": "Für Einspeisung negativ eintragen, zum Beispiel -3000. 0 schaltet die Untergrenze ab.",
+        "en": "Enter a negative value for feed-in, for example -3000. 0 switches the lower limit off.",
+        "fr": "Indiquez une valeur négative pour l'injection, par exemple -3000. 0 désactive la limite inférieure.",
+        "es": "Introduce un valor negativo para el vertido, por ejemplo -3000. 0 desactiva el límite inferior."
+      }
     }
   ],
   "actions": [
     {
       "key": "test_connection",
       "label": {
-        "de": "Verbindung testen",
+        "de": "Verbindung prüfen",
         "en": "Test the connection",
         "fr": "Tester la connexion",
-        "es": "Probar la conexión"
+        "es": "Comprobar la conexión"
       },
       "description": {
-        "de": "Liest den WattWächter jetzt und sagt, was er geantwortet hat: Modell, Firmware, Zählernummer und die aktuelle Leistung.",
-        "en": "Reads the WattWächter now and says what it answered: model, firmware, meter number and the current power.",
-        "fr": "Interroge le WattWächter maintenant et dit ce qu'il a répondu : modèle, firmware, numéro de compteur et puissance actuelle.",
-        "es": "Consulta el WattWächter ahora y dice lo que ha respondido: modelo, firmware, número de contador y potencia actual."
-      },
-      "timeout_seconds": 30
+        "de": "Liest den WattWächter jetzt und sagt, was er geantwortet hat: Modell, Firmware, Geräte-ID und die aktuelle Leistung.",
+        "en": "Reads the WattWächter now and reports what it answered: model, firmware, device ID and current power.",
+        "fr": "Lit le WattWächter maintenant et indique ce qu'il a répondu : modèle, firmware, ID de l’appareil et puissance actuelle.",
+        "es": "Lee el WattWächter ahora e indica lo que ha respondido: modelo, firmware, ID del aparato y potencia actual."
+      }
     }
   ],
   "widgets": [
@@ -179,10 +164,10 @@
         "es": "Contador eléctrico"
       },
       "description": {
-        "de": "Aktueller Verbrauch, Zählernummer und der Zeitraumwert auf Knopfdruck.",
-        "en": "Current consumption, meter number and the period total at the press of a button.",
-        "fr": "Consommation actuelle, numéro de compteur et total de la période en un clic.",
-        "es": "Consumo actual, número de contador y total del periodo con un toque."
+        "de": "Aktueller Verbrauch, Geräte-ID und der Zeitraumwert auf Knopfdruck.",
+        "en": "Current consumption, device ID and the period total at the press of a button.",
+        "fr": "Consommation actuelle, ID de l’appareil et total de la période en un clic.",
+        "es": "Consumo actual, ID del aparato y total del periodo con un toque."
       },
       "icon": "zap",
       "action_timeout_seconds": 15,
@@ -200,7 +185,7 @@
           "description": {
             "de": "Welcher WattWächter diese Kachel versorgt. Leer lassen für den ersten.",
             "en": "Which WattWächter feeds this tile. Leave empty for the first one.",
-            "fr": "Quel WattWächter alimente cette tuile. Vide = le premier.",
+            "fr": "Quel WattWächter alimente cette tuile. Vide pour le premier.",
             "es": "Qué WattWächter alimenta esta tarjeta. Vacío para el primero."
           },
           "required": false
@@ -252,32 +237,49 @@
     {
       "key": "power_threshold_crossed",
       "label": {
-        "de": "Leistung überschreitet eine Grenze",
-        "en": "Power crossed a limit",
-        "fr": "La puissance franchit une limite",
-        "es": "La potencia cruza un límite"
+        "de": "Leistungsgrenze überschritten",
+        "en": "Power threshold crossed",
+        "fr": "Seuil de puissance franchi",
+        "es": "Umbral de potencia superado"
       },
       "description": {
-        "de": "Die Leistung ist über die obere Grenze gestiegen oder unter die untere gefallen. Werte in Watt, positiv ist Bezug, negativ ist Einspeisung.",
-        "en": "The power rose above the upper limit or dropped below the lower one. Values in watts, positive is consumption, negative is feed-in.",
-        "fr": "La puissance a dépassé la limite haute ou est descendue sous la limite basse. Valeurs en watts, positif = consommation, négatif = injection.",
-        "es": "La potencia ha superado el límite superior o ha bajado del inferior. Valores en vatios, positivo es consumo, negativo es vertido."
+        "de": "Wird ausgelöst, wenn die Leistung die eingestellte Ober- oder Untergrenze überquert. Die Grenzen stehen in der Konfiguration.",
+        "en": "Fires when the power crosses the configured upper or lower limit. The limits are set in the configuration.",
+        "fr": "Se déclenche lorsque la puissance franchit la limite supérieure ou inférieure configurée. Les limites se règlent dans la configuration.",
+        "es": "Se activa cuando la potencia cruza el límite superior o inferior configurado. Los límites se ajustan en la configuración."
       },
       "fields": [
         {
           "key": "direction",
+          "label": {
+            "de": "Richtung",
+            "en": "Direction",
+            "fr": "Direction",
+            "es": "Dirección"
+          },
           "type": "select",
-          "label": { "de": "Richtung", "en": "Direction", "fr": "Sens", "es": "Dirección" },
           "options": [
-            { "value": "over", "label": { "de": "Über der Grenze", "en": "Above the limit", "fr": "Au-dessus de la limite", "es": "Por encima del límite" } },
-            { "value": "under", "label": { "de": "Unter der Grenze", "en": "Below the limit", "fr": "Sous la limite", "es": "Por debajo del límite" } }
+            { "value": "over", "label": { "de": "Überschritten", "en": "Exceeded", "fr": "Dépassée", "es": "Superado" } },
+            { "value": "under", "label": { "de": "Unterschritten", "en": "Fallen below", "fr": "En dessous", "es": "Por debajo" } }
           ]
         }
       ],
       "variables": [
-        { "key": "direction", "type": "string", "label": { "de": "Richtung", "en": "Direction", "fr": "Sens", "es": "Dirección" } },
-        { "key": "limit", "type": "number", "label": { "de": "Grenze", "en": "Limit", "fr": "Limite", "es": "Límite" } },
-        { "key": "power", "type": "number", "label": { "de": "Leistung", "en": "Power", "fr": "Puissance", "es": "Potencia" } }
+        {
+          "key": "direction",
+          "label": { "de": "Richtung", "en": "Direction", "fr": "Direction", "es": "Dirección" },
+          "type": "string"
+        },
+        {
+          "key": "limit",
+          "label": { "de": "Grenze in Watt", "en": "Limit in watts", "fr": "Limite en watts", "es": "Límite en vatios" },
+          "type": "number"
+        },
+        {
+          "key": "power",
+          "label": { "de": "Leistung in Watt", "en": "Power in watts", "fr": "Puissance en watts", "es": "Potencia en vatios" },
+          "type": "number"
+        }
       ]
     }
   ],
@@ -285,23 +287,39 @@
     {
       "key": "read_meter",
       "label": {
-        "de": "Zählerstände lesen",
-        "en": "Read the meter readings",
-        "fr": "Lire les index du compteur",
-        "es": "Leer las lecturas del contador"
+        "de": "WattWächter lesen",
+        "en": "Read the WattWächter",
+        "fr": "Lire le WattWächter",
+        "es": "Leer el WattWächter"
       },
       "description": {
-        "de": "Liest den WattWächter jetzt und übergibt Leistung, Bezug und Einspeisung an die folgenden Aktionen.",
-        "en": "Reads the WattWächter now and hands power, consumption and feed-in to the following actions.",
-        "fr": "Lit le WattWächter maintenant et transmet puissance, consommation et injection aux actions suivantes.",
-        "es": "Lee el WattWächter ahora y entrega potencia, consumo y vertido a las acciones siguientes."
+        "de": "Liest den WattWächter jetzt und übergibt Leistung, Bezug und Einspeisung an die folgenden Aktionen. Die Geräte-ID ist die MAC-Adresse des WattWächters, nicht die Zählernummer des Netzbetreibers: Damit lässt sich bei zwei Geräten eindeutig unterscheiden, welcher Zähler gemeint ist.",
+        "en": "Reads the WattWächter now and hands power, consumption and feed-in to the following actions. The device ID is the WattWächter's MAC address, not the utility meter number: it tells two units apart unambiguously.",
+        "fr": "Lit le WattWächter maintenant et transmet puissance, consommation et injection aux actions suivantes. L'ID de l'appareil est l'adresse MAC du WattWächter, pas le numéro de compteur du gestionnaire de réseau : elle distingue sans ambiguïté deux appareils.",
+        "es": "Lee el WattWächter ahora y entrega potencia, consumo y vertido a las acciones siguientes. El ID del aparato es la dirección MAC del WattWächter, no el número de contador de la compañía eléctrica: distingue sin ambigüedad dos aparatos."
       },
-      "timeout_seconds": 30,
+      "fields": [],
       "outputs": [
-        { "key": "power", "type": "number", "label": { "de": "Leistung (W)", "en": "Power (W)", "fr": "Puissance (W)", "es": "Potencia (W)" } },
-        { "key": "consumption", "type": "number", "label": { "de": "Bezug (kWh)", "en": "Consumption (kWh)", "fr": "Consommation (kWh)", "es": "Consumo (kWh)" } },
-        { "key": "feed_in", "type": "number", "label": { "de": "Einspeisung (kWh)", "en": "Feed-in (kWh)", "fr": "Injection (kWh)", "es": "Vertido (kWh)" } },
-        { "key": "meter_number", "type": "string", "label": { "de": "Zählernummer", "en": "Meter number", "fr": "Numéro de compteur", "es": "Número de contador" } }
+        {
+          "key": "power",
+          "type": "number",
+          "label": { "de": "Leistung in Watt", "en": "Power in watts", "fr": "Puissance en watts", "es": "Potencia en vatios" }
+        },
+        {
+          "key": "consumption",
+          "type": "number",
+          "label": { "de": "Bezug in kWh", "en": "Consumption in kWh", "fr": "Consommation en kWh", "es": "Consumo en kWh" }
+        },
+        {
+          "key": "feed_in",
+          "type": "number",
+          "label": { "de": "Einspeisung in kWh", "en": "Feed-in in kWh", "fr": "Injection en kWh", "es": "Vertido en kWh" }
+        },
+        {
+          "key": "meter_number",
+          "type": "string",
+          "label": { "de": "Geräte-ID (MAC-Adresse)", "en": "Device ID (MAC address)", "fr": "ID de l’appareil (adresse MAC)", "es": "ID del aparato (dirección MAC)" }
+        }
       ]
     },
     {
@@ -318,25 +336,32 @@
         "fr": "Additionne la consommation sur une période et la transmet aux actions suivantes. Nécessite le jeton de lecture de l'API REST.",
         "es": "Suma el consumo de un periodo y lo entrega a las acciones siguientes. Necesita el token de lectura de la API REST."
       },
-      "timeout_seconds": 45,
       "fields": [
         {
           "key": "period",
           "type": "select",
-          "label": { "de": "Zeitraum", "en": "Period", "fr": "Période", "es": "Periodo" },
-          "required": true,
+          "required": false,
           "default": "day",
+          "label": { "de": "Zeitraum", "en": "Period", "fr": "Période", "es": "Periodo" },
           "options": [
             { "value": "day", "label": { "de": "Heute", "en": "Today", "fr": "Aujourd'hui", "es": "Hoy" } },
-            { "value": "week", "label": { "de": "Letzte 7 Tage", "en": "Last 7 days", "fr": "7 derniers jours", "es": "Últimos 7 días" } },
-            { "value": "month", "label": { "de": "Letzte 30 Tage", "en": "Last 30 days", "fr": "30 derniers jours", "es": "Últimos 30 días" } },
-            { "value": "year", "label": { "de": "Letzte 365 Tage", "en": "Last 365 days", "fr": "365 derniers jours", "es": "Últimos 365 días" } }
+            { "value": "week", "label": { "de": "7 Tage", "en": "7 days", "fr": "7 jours", "es": "7 días" } },
+            { "value": "month", "label": { "de": "30 Tage", "en": "30 days", "fr": "30 jours", "es": "30 días" } },
+            { "value": "year", "label": { "de": "365 Tage", "en": "365 days", "fr": "365 jours", "es": "365 días" } }
           ]
         }
       ],
       "outputs": [
-        { "key": "value", "type": "number", "label": { "de": "Verbrauch des Zeitraums (kWh)", "en": "Period consumption (kWh)", "fr": "Consommation de la période (kWh)", "es": "Consumo del periodo (kWh)" } },
-        { "key": "period", "type": "string", "label": { "de": "Zeitraum", "en": "Period", "fr": "Période", "es": "Periodo" } }
+        {
+          "key": "value",
+          "type": "number",
+          "label": { "de": "Verbrauch des Zeitraums in kWh", "en": "Period consumption in kWh", "fr": "Consommation de la période en kWh", "es": "Consumo del periodo en kWh" }
+        },
+        {
+          "key": "period",
+          "type": "string",
+          "label": { "de": "Zeitraum", "en": "Period", "fr": "Période", "es": "Periodo" }
+        }
       ]
     }
   ]
