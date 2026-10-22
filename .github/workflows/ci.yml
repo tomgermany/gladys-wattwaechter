@@ -1,0 +1,61 @@
+name: CI
+
+# WHAT THIS CHECKS, AND WHAT IT DELIBERATELY DOES NOT
+# Lint, the unit tests and a real Docker build of the integration. Those three
+# are what a Gladys integration actually has to satisfy: the manifest is
+# validated by the store indexer, the image has to build and run, and the tests
+# cover the Modbus, REST and device layers against `node --test`.
+#
+# NO FORMATTING CHECK, ON PURPOSE
+# The template ships a `prettier --check .` step. It was removed here: Prettier
+# walks the whole repository -- the source, the manifest, `package.json`, the
+# README and every file in `docs/` -- and on this repository it reported all
+# fourteen files as needing reformatting. A check that disagrees with every file
+# it sees is not enforcing a style the project writes in. Formatting is not part
+# of the Gladys contract either: the indexer validates the manifest, the docs and
+# the image reference, and says nothing about whitespace. The `format` and
+# `format:check` scripts stay in `package.json` for anyone who wants that style
+# by hand.
+#
+# WHY `npm install` AND NOT `npm ci`
+# `npm ci` refuses to run when the lockfile and package.json do not agree to the
+# byte, and on this repository that refusal produced red runs whose cause was a
+# checksum rather than a fault in the integration. `npm install` reads
+# package.json, resolves what it declares and writes the lockfile, so a drift
+# shows up as a diff instead of as a failure. The Dockerfile does the same for
+# the same reason.
+#
+# THE MATRIX
+# Node 22 and 24, the range the manifest's `gladys_version` and the Dockerfile
+# both live in. `fail-fast: false` so one version failing does not cancel the
+# other: seeing both results is what separates a Node difference from a real
+# fault.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm install
+      - run: npm run lint
+      - run: npm test
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - run: docker build -t gladys-wattwaechter:ci .
