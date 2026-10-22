@@ -32,6 +32,8 @@
 // registers). There is nothing to write: a meter is read-only.
 // -----------------------------------------------------------------------------
 
+import { ModbusSocket } from './transport.js';
+
 /** SunSpec register base of the WattWächter's map. */
 export const SUNSPEC_BASE = 40000;
 
@@ -104,37 +106,34 @@ export const ALL_PATHS = [...READINGS, ...COUNTERS];
 
 export class ModbusError extends Error {}
 
-/** One raw Modbus TCP exchange, framed and parsed. */
+/**
+ * One Modbus TCP request, sent through the TCP transport.
+ *
+ * WHY THIS IS NOT AN HTTP CALL
+ * Modbus TCP is a binary protocol on a plain socket: a 12-byte frame goes out,
+ * a frame comes back. An HTTP request cannot carry it. An earlier version of
+ * this file posted the frame to an HTTP URL and produced nothing but
+ * `Failed to parse URL from 0,0,0,0,0,6,1,3,0,3,0,16` — the frame read as a URL
+ * — before the mistake was found on a real device.
+ *
+ * `transport` is anything with `request(frame)`: the real `ModbusSocket`, or a
+ * hand-written stand-in in the tests.
+ */
 class Connection {
-  constructor(host, port, timeoutMs, fetchImpl) {
-    this.host = host;
-    this.port = port;
-    this.timeoutMs = timeoutMs;
-    this.fetch = fetchImpl;
+  constructor(transport) {
+    this.transport = transport;
   }
 
   /**
    * Read `count` registers starting at `address`, function code 0x03.
    *
-   * The frame is a standard Modbus TCP request: a 7-byte MBAP header followed
-   * by function code, start address and count. The answer echoes the first part
-   * and then carries a byte count and the register bytes.
+   * The answer echoes the first bytes of the request and then carries a byte
+   * count and the register bytes.
    */
   async readHolding(address, count, unitId = 1) {
     const frame = buildReadRequest(address, count, unitId);
-    const bytes = await this.send(frame);
+    const bytes = await this.transport.request(frame);
     return parseReadAnswer(bytes, address, count);
-  }
-
-  async send(frame) {
-    let response;
-    try {
-      response = await this.fetch(frame);
-    } catch (err) {
-      throw new ModbusError(`WattWaechter unreachable (${this.host}:${this.port}): ${err.message}`);
-    }
-    if (!response.ok) throw new ModbusError(`HTTP ${response.status} from the Modbus bridge`);
-    return new Uint8Array(await response.arrayBuffer());
   }
 }
 
@@ -179,14 +178,17 @@ export class WattwaechterModbus {
    * @param {string} options.host IP or mDNS name of the device
    * @param {number} [options.port] Modbus port, 502 by default
    * @param {number} [options.timeoutMs]
-   * @param {(frame: Uint8Array) => Promise<object>} [options.fetch] injectable, for the tests
+   * @param {object} [options.transport] anything with `request(frame)`; the real
+   *   `ModbusSocket` is the default, and the tests pass a stand-in
    */
-  constructor({ host, port = 502, timeoutMs = 5000, fetch: fetchImpl = globalThis.fetch } = {}) {
+  constructor({ host, port = 502, timeoutMs = 5000, transport } = {}) {
     this.host = host;
     this.port = port;
     this.timeoutMs = timeoutMs;
-    this.fetch = fetchImpl;
-    this.connection = new Connection(host, port, timeoutMs, fetchImpl);
+    // The transport is the socket. Wiring it here, rather than reaching for
+    // `fetch`, is what makes this a Modbus client and not an HTTP client.
+    this.transport = transport ?? new ModbusSocket({ host, port, responseTimeoutMs: timeoutMs });
+    this.connection = new Connection(this.transport);
     // Optional hook: the caller logs what was tolerated instead of failing.
     this.warn = null;
     this.info = null;
