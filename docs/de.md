@@ -5,6 +5,8 @@ Eine [Gladys Assistant](https://gladysassistant.com/)-Integration, die den Strom
 
 ## Voraussetzung: Modbus einschalten
 
+**Wattwächter der Fa. Wattwächter, angebracht an den Zähler bei ihnen:[wattwächter] (https://www.wattwaechter.com/)/) 
+
 **Der Modbus-Server ist im WattWächter standardmäßig ausgeschaltet und muss zuerst aktiviert werden.**
 Ohne diesen Schritt antwortet das Gerät auf Port 502 nicht, und die Integration kann nichts lesen.
 
