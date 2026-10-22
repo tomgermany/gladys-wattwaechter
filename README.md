@@ -4,7 +4,7 @@ A [Gladys Assistant](https://gladysassistant.com/) external integration that rea
 meter through a **WattWächter Plus**, over your local network. No cloud, no account.
 
 **[Anwenderdokumentation auf Deutsch](docs/de.md)** · [English](docs/en.md) ·
-[Français](docs/fr.md) · [Español](docs/es.md) · **[Übersicht: was was bedeutet](docs/overview.md)**
+[Français](docs/fr.md) · [Español](docs/es.md)
 
 ![Integration](cover.png)
 
