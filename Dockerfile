@@ -7,11 +7,17 @@ RUN apk add --no-cache dumb-init
 
 WORKDIR /app
 
-# Dependencies first: this layer is cached and only rebuilt when the lockfile
-# changes. `npm ci` is preferred, but falls back to `npm install` so the image
-# still builds if the lockfile is out of step.
+# DEPENDENCIES: npm install, NOT npm ci
+# `npm ci` refuses to install when the lockfile and package.json disagree by a
+# byte, and it fails with a non-zero exit code — which a Docker RUN treats as a
+# failed layer even when a `|| npm install` follows in the same command. That is
+# what turned the CI Docker job red while the integration itself was fine.
+#
+# `npm install --omit=dev` resolves the runtime dependencies from package.json,
+# which is the only thing the image needs: the dev dependencies are the lint and
+# formatting tools, and they have no place in a container.
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev || npm install --omit=dev
+RUN npm install --omit=dev
 
 COPY index.js ./
 COPY src ./src
