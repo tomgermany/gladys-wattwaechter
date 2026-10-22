@@ -13,24 +13,36 @@
 // only the read function codes 0x03 and 0x04, so there is no write path even if
 // we wanted one.
 //
+// THE CATEGORY AND TYPE NAMES, WHICH COST A ROUND ON A REAL GLADYS
+// There is no `CATEGORIES.ENERGY`: electricity lives in `ENERGY_SENSOR`
+// ('energy-sensor'), and power, voltage and current are TYPES inside that one
+// category rather than categories of their own. An earlier version used
+// `CAT.ENERGY` and `CAT.VOLTAGE_SENSOR`, which do not exist, so every feature
+// went out with `category: undefined` and Gladys refused the whole device with
+// `unknown category`.
+//
+// The names below come from the SDK's own typings. The fallbacks keep a future
+// rename from taking the whole device down, but they are a safety net, not the
+// source of truth: when a name is wrong, the log prints `undefined/<type>` for
+// every feature, which is how this was found.
+//
 // THE TWO ENERGY COUNTERS ARE THE POINT
 // `consumption` and `feed_in` are not ordinary readings: they are cumulative
-// meter totals. In Gladys they belong to the ENERGY category with the
-// kilowatt-hour unit, because that is what makes them usable by the energy
-// monitoring and lets the user build a consumption view from them. The live
-// readings (power, voltage, current, frequency) are ordinary values.
+// meter totals. They are ENERGY_SENSOR/INDEX in kilowatt-hours, which is what
+// makes them usable by the energy monitoring and lets the user build a
+// consumption view from them.
 //
 // UNITS, AND WHY THEY ARE CONVERTED HERE
 // The meter reports the counters in watt-hours and the power in watts. Gladys
-// stores energy in kilowatt-hours for an energy feature, so watt-hours are
+// stores energy in kilowatt-hours for an index feature, so watt-hours are
 // divided by 1000 once, here, on the way in. Everything else is published as it
 // arrives.
 //
 // A READING THE METER DOES NOT PROVIDE SIMPLY DOES NOT APPEAR
-// The Modbus client already drops the SunSpec "not available" sentinel, so a
-// key can be missing from the state. This file therefore builds a feature only
-// for a key that is really there. A two-phase meter gets no phase 3, and the
-// interface never shows a zero that would be wrong.
+// The Modbus client already drops the SunSpec "not available" sentinel, so a key
+// can be missing from the state. This file therefore builds a feature only for a
+// key that is really there. A two-phase meter gets no phase 3, and the interface
+// never shows a zero that would be wrong.
 //
 // IT IS UNIT-TESTED WITHOUT A DEVICE: buildDevice() takes a plain object, so the
 // tests hand it hand-written readings.
@@ -45,12 +57,13 @@ import {
 
 const logger = createLogger({ name: 'meter' });
 
-// The SDK exports the names used below where they are documented; the fallbacks
-// are the literal values the Gladys core uses.
-const ENERGY = TYPE.ENERGY?.INDEX ?? 'index';
-const POWER = TYPE.ENERGY?.POWER ?? 'power';
-const VOLTAGE = TYPE.VOLTAGE_SENSOR?.VOLTAGE ?? 'voltage';
-const CURRENT = TYPE.CURRENT_SENSOR?.CURRENT ?? 'current';
+const CAT_ENERGY = CAT.ENERGY_SENSOR ?? 'energy-sensor';
+const CAT_FREQUENCY = CAT.FREQUENCY_SENSOR ?? 'frequency-sensor';
+
+const ENERGY = TYPE.ENERGY_SENSOR?.INDEX ?? 'index';
+const POWER = TYPE.ENERGY_SENSOR?.POWER ?? 'power';
+const VOLTAGE = TYPE.ENERGY_SENSOR?.VOLTAGE ?? 'voltage';
+const CURRENT = TYPE.ENERGY_SENSOR?.CURRENT ?? 'current';
 const FREQUENCY = TYPE.FREQUENCY_SENSOR?.FREQUENCY ?? 'frequency';
 
 /**
@@ -59,8 +72,8 @@ const FREQUENCY = TYPE.FREQUENCY_SENSOR?.FREQUENCY ?? 'frequency';
  *   key      : the reading it carries, and the suffix of the feature external
  *              id. Never rename it: Gladys keys the history, the scenes and the
  *              dashboards on these ids.
- *   category : how Gladys files it. ENERGY is the one that matters, it is what
- *              the energy monitoring reads.
+ *   category : how Gladys files it. ENERGY_SENSOR is the one that matters, it is
+ *              what the energy monitoring reads.
  *   type     : how Gladys renders and stores it.
  *   unit     : the unit the value is published in. Keep it in step with the
  *              `scale` beside it, or the numbers lie.
@@ -69,30 +82,45 @@ const FREQUENCY = TYPE.FREQUENCY_SENSOR?.FREQUENCY ?? 'frequency';
 export const FEATURES = [
   // The live reading the widget shows big. Positive is consumption, negative is
   // feed-in: the meter's own sign, kept as it is.
-  { key: 'power', name: 'Leistung', category: CAT.ENERGY, type: POWER, unit: UNIT.WATT, scale: 1 },
+  { key: 'power', name: 'Leistung', category: CAT_ENERGY, type: POWER, unit: UNIT.WATT, scale: 1 },
 
   // The two cumulative meter totals, for the energy monitoring. Wh from the
-  // device, kWh in Gladys.
-  { key: 'consumption', name: 'Zählerstand Bezug', category: CAT.ENERGY, type: ENERGY, unit: UNIT.KILOWATT_HOUR, scale: 0.001 },
-  { key: 'feed_in', name: 'Zählerstand Einspeisung', category: CAT.ENERGY, type: ENERGY, unit: UNIT.KILOWATT_HOUR, scale: 0.001 },
+  // device, kWh in Gladys. INDEX is the type a connected meter publishes for a
+  // cumulative reading.
+  {
+    key: 'consumption',
+    name: 'Zählerstand Bezug',
+    category: CAT_ENERGY,
+    type: ENERGY,
+    unit: UNIT.KILOWATT_HOUR,
+    scale: 0.001,
+  },
+  {
+    key: 'feed_in',
+    name: 'Zählerstand Einspeisung',
+    category: CAT_ENERGY,
+    type: ENERGY,
+    unit: UNIT.KILOWATT_HOUR,
+    scale: 0.001,
+  },
 
   // Per-phase power: present in the device, hidden in the widget by default.
-  { key: 'power_l1', name: 'Leistung L1', category: CAT.ENERGY, type: POWER, unit: UNIT.WATT, scale: 1 },
-  { key: 'power_l2', name: 'Leistung L2', category: CAT.ENERGY, type: POWER, unit: UNIT.WATT, scale: 1 },
-  { key: 'power_l3', name: 'Leistung L3', category: CAT.ENERGY, type: POWER, unit: UNIT.WATT, scale: 1 },
+  { key: 'power_l1', name: 'Leistung L1', category: CAT_ENERGY, type: POWER, unit: UNIT.WATT, scale: 1 },
+  { key: 'power_l2', name: 'Leistung L2', category: CAT_ENERGY, type: POWER, unit: UNIT.WATT, scale: 1 },
+  { key: 'power_l3', name: 'Leistung L3', category: CAT_ENERGY, type: POWER, unit: UNIT.WATT, scale: 1 },
 
   // Voltage per phase.
-  { key: 'voltage_l1', name: 'Spannung L1', category: CAT.VOLTAGE_SENSOR, type: VOLTAGE, unit: UNIT.VOLT, scale: 1 },
-  { key: 'voltage_l2', name: 'Spannung L2', category: CAT.VOLTAGE_SENSOR, type: VOLTAGE, unit: UNIT.VOLT, scale: 1 },
-  { key: 'voltage_l3', name: 'Spannung L3', category: CAT.VOLTAGE_SENSOR, type: VOLTAGE, unit: UNIT.VOLT, scale: 1 },
+  { key: 'voltage_l1', name: 'Spannung L1', category: CAT_ENERGY, type: VOLTAGE, unit: UNIT.VOLT, scale: 1 },
+  { key: 'voltage_l2', name: 'Spannung L2', category: CAT_ENERGY, type: VOLTAGE, unit: UNIT.VOLT, scale: 1 },
+  { key: 'voltage_l3', name: 'Spannung L3', category: CAT_ENERGY, type: VOLTAGE, unit: UNIT.VOLT, scale: 1 },
 
   // Current per phase.
-  { key: 'current_l1', name: 'Strom L1', category: CAT.CURRENT_SENSOR, type: CURRENT, unit: UNIT.AMPERE, scale: 1 },
-  { key: 'current_l2', name: 'Strom L2', category: CAT.CURRENT_SENSOR, type: CURRENT, unit: UNIT.AMPERE, scale: 1 },
-  { key: 'current_l3', name: 'Strom L3', category: CAT.CURRENT_SENSOR, type: CURRENT, unit: UNIT.AMPERE, scale: 1 },
+  { key: 'current_l1', name: 'Strom L1', category: CAT_ENERGY, type: CURRENT, unit: UNIT.AMPERE, scale: 1 },
+  { key: 'current_l2', name: 'Strom L2', category: CAT_ENERGY, type: CURRENT, unit: UNIT.AMPERE, scale: 1 },
+  { key: 'current_l3', name: 'Strom L3', category: CAT_ENERGY, type: CURRENT, unit: UNIT.AMPERE, scale: 1 },
 
-  // Grid frequency.
-  { key: 'frequency', name: 'Frequenz', category: CAT.FREQUENCY_SENSOR, type: FREQUENCY, unit: UNIT.HERTZ, scale: 1 },
+  // Grid frequency: its own category, not part of the energy sensor.
+  { key: 'frequency', name: 'Frequenz', category: CAT_FREQUENCY, type: FREQUENCY, unit: UNIT.HERTZ, scale: 1 },
 ];
 
 /**
