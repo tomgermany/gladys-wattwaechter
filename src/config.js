@@ -5,12 +5,10 @@
 // `gladys-assistant-integration.json`. The SDK fetches it (`gladys.getConfig()`)
 // and notifies every change through `gladys.onConfigUpdated()`.
 //
-// This module only provides defaults and normalises the object, so the rest of
-// the code never deals with `undefined`.
-// -----------------------------------------------------------------------------
-
 // Defaults MUST stay consistent with the `default` values of the manifest
 // `config_schema` (checked by test/manifest.test.js).
+// -----------------------------------------------------------------------------
+
 export const DEFAULT_CONFIG = {
   host: '',
   modbus_port: 502,
