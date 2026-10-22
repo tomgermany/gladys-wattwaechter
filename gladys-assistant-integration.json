@@ -3,9 +3,9 @@
   "type": "device",
   "name": "WattWächter Plus",
   "description": {
-    "de": "Liest den WattWächter Plus und zeigt Leistung, Netzbezug und Einspeisung in Gladys Assistant.",
-    "en": "Reads the WattWächter Plus and shows power, consumption and feed-in in Gladys Assistant.",
-    "fr": "Lit le WattWächter Plus et affiche la puissance, la consommation et l'injection dans Gladys Assistant.",
+    "de": "Liest den WattWächter Plus und zeigt Leistung, Netzbezug und Einspeisung.",
+    "en": "Reads the WattWächter Plus and shows power, consumption and feed-in.",
+    "fr": "Lit le WattWächter Plus et affiche la puissance, la consommation et l'injection.",
     "es": "Lee el WattWächter Plus y muestra potencia, consumo y vertido en Gladys Assistant."
   },
   "version": "1.2.1",
