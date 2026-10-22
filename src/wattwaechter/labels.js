@@ -28,6 +28,7 @@ export const KEY = {
 const TEXT = {
   de: {
     notConnected: 'Kein Zugriff auf den WattWächter. Adresse in der Konfiguration prüfen.',
+    needsToken: 'Für den Zeitraumwert wird das Lesetoken der REST-API gebraucht.',
     power: 'Leistung',
     meterNumber: 'Zählernummer',
     period_day: 'Heute',
@@ -41,6 +42,7 @@ const TEXT = {
   },
   en: {
     notConnected: 'No access to the WattWächter. Check the address in the configuration.',
+    needsToken: 'The period total needs the REST API read token.',
     power: 'Power',
     meterNumber: 'Meter number',
     period_day: 'Today',
@@ -54,6 +56,7 @@ const TEXT = {
   },
   fr: {
     notConnected: 'Pas d’accès au WattWächter. Vérifiez l’adresse dans la configuration.',
+    needsToken: 'Le total de la période nécessite le jeton de lecture de l’API REST.',
     power: 'Puissance',
     meterNumber: 'Numéro de compteur',
     period_day: "Aujourd'hui",
@@ -67,6 +70,7 @@ const TEXT = {
   },
   es: {
     notConnected: 'Sin acceso al WattWächter. Comprueba la dirección en la configuración.',
+    needsToken: 'El total del periodo necesita el token de lectura de la API REST.',
     power: 'Potencia',
     meterNumber: 'Número de contador',
     period_day: 'Hoy',
