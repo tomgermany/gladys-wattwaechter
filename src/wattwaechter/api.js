@@ -3,9 +3,9 @@
 //
 // WHY THIS FILE EXISTS AT ALL
 // Modbus gives the live readings, but nothing about the past: it has no notion
-// of "yesterday", only of "right now". The daily totals the widget buttons need
-// therefore come from the device's REST API, which is the only place that knows
-// how much was consumed over a period.
+// of "yesterday", only of "right now". The day, week, month and year totals the
+// widget buttons need therefore come from the device's REST API, which is the
+// only place that knows how much was consumed over a period.
 //
 // WHAT IT TALKS TO
 //   GET /api/v1/history/latest              the current reading, the full set
@@ -13,7 +13,14 @@
 //   GET /api/v1/history/lowRes?start=...&days=...
 //                                           daily values over a range, with the
 //                                           period totals already summed
-// All three need a READ token, sent as `Authorization: Bearer <token>`.
+//
+// THE TOKEN IS OPTIONAL, AND HERE IS WHY
+// The device has a setting `api_auth_required`. When it is false — the factory
+// state, and what the reference device here runs — the history endpoints answer
+// with no credentials at all. This client therefore always exists, and sends an
+// `Authorization` header only when a token was configured. Treating "no token"
+// as "API unusable" would hide the period buttons on a device that does not
+// need one.
 //
 // THE ONE THING WORTH KNOWING ABOUT THE ANSWER
 // `lowRes` answers with the daily rows AND with the totals for the whole range
@@ -32,9 +39,9 @@
 // meter justifies holding a key that can reconfigure the device.
 //
 // NOT VERIFIED AGAINST A DEVICE. The shapes below come from the documentation
-// and from the answers the user pasted while we planned this. The error messages
-// name the endpoint and the beginning of the answer, so a surprise is readable
-// in the log rather than mysterious.
+// and from the answers the device really gave while we planned this. The error
+// messages name the endpoint and the beginning of the answer, so a surprise is
+// readable in the log rather than mysterious.
 // -----------------------------------------------------------------------------
 
 export class ApiError extends Error {}
@@ -59,7 +66,7 @@ export class WattwaechterApi {
   /**
    * @param {object} options
    * @param {string} options.host IP or mDNS name of the device
-   * @param {string} [options.token] READ token, from the configuration
+   * @param {string} [options.token] READ token; optional, see the note at the top
    * @param {number} [options.timeoutMs]
    * @param {typeof fetch} [options.fetch] injectable for the tests
    */
@@ -71,11 +78,6 @@ export class WattwaechterApi {
     this.base = `http://${host}/api/v1`;
   }
 
-  /** True when a token is configured; without it the period buttons stay off. */
-  get enabled() {
-    return this.token !== '';
-  }
-
   async get(path, params = {}) {
     const query = Object.entries(params)
       .filter(([, v]) => v !== undefined && v !== null)
@@ -83,10 +85,15 @@ export class WattwaechterApi {
       .join('&');
     const url = `${this.base}/${path}${query ? `?${query}` : ''}`;
 
+    const headers = { accept: 'application/json' };
+    // Only when there is one: a device with `api_auth_required: false` refuses
+    // no request, and an empty "Bearer " would be worse than sending nothing.
+    if (this.token) headers.authorization = `Bearer ${this.token}`;
+
     let response;
     try {
       response = await this.fetch(url, {
-        headers: { authorization: `Bearer ${this.token}`, accept: 'application/json' },
+        headers,
         signal: AbortSignal.timeout(this.timeoutMs),
       });
     } catch (err) {

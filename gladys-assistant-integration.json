@@ -64,7 +64,7 @@
       },
       "description": {
         "de": "Der Port des Modbus-Servers, standardmäßig 502.",
-        "en": "The port of the Modbus server, 502 by default.",
+        "en": "The port of the Modbus server, default 502.",
         "fr": "Le port du serveur Modbus, 502 par défaut.",
         "es": "El puerto del servidor Modbus, 502 por defecto."
       },
@@ -77,16 +77,16 @@
       "key": "read_token",
       "type": "secret",
       "label": {
-        "de": "Lesetoken der REST-API",
-        "en": "REST API read token",
-        "fr": "Jeton de lecture de l'API REST",
-        "es": "Token de lectura de la API REST"
+        "de": "Lesetoken der REST-API (nur nötig, wenn das Gerät Anmeldung verlangt)",
+        "en": "REST API read token (only if the device requires authentication)",
+        "fr": "Jeton de lecture de l'API REST (seulement si l'appareil exige une authentification)",
+        "es": "Token de lectura de la API REST (solo si el aparato exige autenticación)"
       },
       "description": {
-        "de": "Nur nötig für die Zeitraumknöpfe (Tag, Woche, Monat, Jahr), die über die REST-API laufen. Ohne Token zeigt die Kachel nur den aktuellen Verbrauch.",
-        "en": "Only needed for the history buttons (day, week, month, year), which go through the REST API. Without a token the tile only shows the current consumption.",
-        "fr": "Nécessaire uniquement pour les boutons d'historique (jour, semaine, mois, année), qui passent par l'API REST. Sans jeton, la tuile n'affiche que la consommation actuelle.",
-        "es": "Solo necesario para los botones de historial (día, semana, mes, año), que usan la API REST. Sin token la tarjeta solo muestra el consumo actual."
+        "de": "Leer lassen, wenn die Einstellung api_auth_required im Gerät ausgeschaltet ist. Dann funktionieren auch die Zeitraumknöpfe ohne Token.",
+        "en": "Leave empty when the device's api_auth_required setting is off. The period buttons then work without a token too.",
+        "fr": "Laisser vide si le réglage api_auth_required de l'appareil est désactivé. Les boutons de période fonctionnent alors sans jeton.",
+        "es": "Déjalo vacío si el ajuste api_auth_required del aparato está desactivado. Entonces los botones de periodo también funcionan sin token."
       },
       "required": false
     },
