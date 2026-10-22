@@ -10,27 +10,35 @@
 // WHAT THE DEVICE IMPLEMENTS
 // The SunSpec models 1 (Common Block), 203 (Three Phase Meter, int16 with a
 // scale factor) and, from firmware 1.2.1, 213 (the same readings as float32).
-// The register base is the SunSpec standard, 40000.
 //
-// THE ADDRESS OFFSET, WHICH COST A ROUND ON A REAL DEVICE
-// SunSpec addresses are written with a base of 40000: the first register is
-// 40000, the "SunS" marker. Modbus itself counts from zero, so the register a
-// client asks for is address - 40000.
+// THE ADDRESSES ARE THE DOCUMENTED ONES, ON THE WIRE, WITH NO OFFSET
+// The vendor documentation is explicit: "Lies 2 Register ab Protokolladresse
+// 40000". So the number it prints IS the protocol address to send. This file
+// therefore sends the address as it stands.
 //
-// An earlier version subtracted one more, assuming the documented numbers
-// followed the "40001 = the first holding register" convention. On the real
-// device every read then landed one register too low, and the meter answered
-// `Modbus exception 2` — illegal data address — for a path the documentation
-// lists. See buildReadRequest() below, where the offset now lives.
+// Two earlier versions got this wrong in opposite directions — subtracting 1,
+// then subtracting 40000 — and a real device answered `Modbus exception 2`
+// (illegal data address) for a documented register every time. The log line
+// from that run reads `Modbus exception 2 for 40004 (asked for 40004, register
+// 4)`, which is what pinned it down. The documentation also gives a self-test:
+// reading two registers at 40000 must answer 21365 and 28243, which spells
+// "SunS".
 //
 // TWO WAYS TO READ THE SAME NUMBER, AND WHY BOTH ARE HERE
-//   Model 203: each reading is an int16, and a SECOND register holds its scale
+//   Model 203: each reading is an int16, and a SEPARATE register holds its scale
 //              factor. The value is raw * 10^scale.
 //   Model 213: the same readings as IEEE-754 float32 over two registers, with
 //              no scale factor at all. Only from firmware 1.2.1 on.
 // Model 213 is preferred when it answers, because there is nothing to compute
 // and nothing to get wrong. Model 203 stays as the fallback so an older device
 // works too.
+//
+// THE SCALE FACTORS ARE PER GROUP, NOT ONE PER DEVICE
+// Current has A_SF at 40076 (documented as -2, so 0.01 A), voltage has V_SF at
+// 40085 (documented as -1, so 0.1 V), power has W_SF at 40092, frequency has
+// Hz_SF at 40087. Using the current's factor for the voltage would scale every
+// voltage by ten: the addresses alone cannot catch that, so each row below names
+// its own scale register.
 //
 // THE SENTINEL, WHICH MATTERS MORE THAN IT LOOKS
 // The value -32768 (0x8000 as a signed int16) means "this meter does not provide
@@ -45,8 +53,15 @@
 
 import { ModbusSocket } from './transport.js';
 
-/** SunSpec register base of the WattWächter's map. */
+/**
+ * The protocol address of the first register, as the device documents it.
+ * Kept as a named constant so the self-test and any future offset question have
+ * one place to look.
+ */
 export const SUNSPEC_BASE = 40000;
+
+/** The two registers at 40000 must hold these, spelling "SunS" as text. */
+export const SUNSPEC_ID = [21365, 28243];
 
 /** A signed 16-bit register holding this value means "not available". */
 export const NOT_AVAILABLE = -32768;
@@ -55,33 +70,34 @@ export const NOT_AVAILABLE = -32768;
  * The meter readings, as the device publishes them.
  *
  * `model203` is the address of the int16 value, `scale203` the address of its
- * scale-factor register, `model213` the address of the float32 version.
- * `unit` and `name` come from the device's own /history/latest answer, so they
- * are read from the device rather than invented here.
+ * OWN scale-factor register (see the note at the top), `model213` the address of
+ * the float32 version. `unit` and `name` come from the device's own
+ * /history/latest answer, so they are read from the device rather than invented.
  *
  * `key` is what the rest of the code uses. Treat it as permanent: it keys the
  * features in Gladys.
  */
 export const READINGS = [
-  // Power. Positive means consumption, negative means feed-in, which is the
-  // sign convention of the meter itself.
-  { key: 'power', model203: 40088, scale203: 40092, model213: 40187, unit: 'W', name: 'Leistung' },
-  { key: 'power_l1', model203: 40090, scale203: 40092, model213: 40189, unit: 'W', name: 'Leistung L1' },
-  { key: 'power_l2', model203: 40091, scale203: 40092, model213: 40190, unit: 'W', name: 'Leistung L2' },
-  { key: 'power_l3', model203: 40092, scale203: 40092, model213: 40191, unit: 'W', name: 'Leistung L3' },
+  // Power, the value the widget shows big. Positive means consumption,
+  // negative means feed-in, which is the sign convention of the meter itself.
+  // Scale register 40092 holds W_SF.
+  { key: 'power', model203: 40088, scale203: 40092, model213: 40205, unit: 'W', name: 'Leistung' },
+  { key: 'power_l1', model203: 40089, scale203: 40092, model213: 40207, unit: 'W', name: 'Leistung L1' },
+  { key: 'power_l2', model203: 40090, scale203: 40092, model213: 40209, unit: 'W', name: 'Leistung L2' },
+  { key: 'power_l3', model203: 40091, scale203: 40092, model213: 40211, unit: 'W', name: 'Leistung L3' },
 
-  // Voltage per phase.
-  { key: 'voltage_l1', model203: 40078, scale203: 40076, model213: 40181, unit: 'V', name: 'Spannung L1' },
-  { key: 'voltage_l2', model203: 40079, scale203: 40076, model213: 40182, unit: 'V', name: 'Spannung L2' },
-  { key: 'voltage_l3', model203: 40080, scale203: 40076, model213: 40183, unit: 'V', name: 'Spannung L3' },
+  // Voltage per phase, with its own scale register 40085 (V_SF).
+  { key: 'voltage_l1', model203: 40078, scale203: 40085, model213: 40189, unit: 'V', name: 'Spannung L1' },
+  { key: 'voltage_l2', model203: 40079, scale203: 40085, model213: 40191, unit: 'V', name: 'Spannung L2' },
+  { key: 'voltage_l3', model203: 40080, scale203: 40085, model213: 40193, unit: 'V', name: 'Spannung L3' },
 
-  // Current per phase.
-  { key: 'current_l1', model203: 40073, scale203: 40076, model213: 40177, unit: 'A', name: 'Strom L1' },
-  { key: 'current_l2', model203: 40074, scale203: 40076, model213: 40178, unit: 'A', name: 'Strom L2' },
-  { key: 'current_l3', model203: 40075, scale203: 40076, model213: 40179, unit: 'A', name: 'Strom L3' },
+  // Current per phase, with its own scale register 40076 (A_SF).
+  { key: 'current_l1', model203: 40073, scale203: 40076, model213: 40181, unit: 'A', name: 'Strom L1' },
+  { key: 'current_l2', model203: 40074, scale203: 40076, model213: 40183, unit: 'A', name: 'Strom L2' },
+  { key: 'current_l3', model203: 40075, scale203: 40076, model213: 40185, unit: 'A', name: 'Strom L3' },
 
-  // Grid frequency.
-  { key: 'frequency', model203: 40086, scale203: 40087, model213: 40185, unit: 'Hz', name: 'Frequenz' },
+  // Grid frequency, with its own scale register 40087 (Hz_SF).
+  { key: 'frequency', model203: 40086, scale203: 40087, model213: 40203, unit: 'Hz', name: 'Frequenz' },
 ];
 
 /**
@@ -139,17 +155,17 @@ class Connection {
    * Read `count` registers starting at `address`, function code 0x03.
    *
    * An exception from the device is re-thrown with the register that actually
-   * went on the wire, in both notations: "illegal data address" is only
-   * diagnosable when the log says which register was asked for.
+   * went on the wire: "illegal data address" is only diagnosable when the log
+   * says which register was asked for. That line is what found the offset bug.
    */
   async readHolding(address, count, unitId = 1) {
     const frame = buildReadRequest(address, count, unitId);
-    const offset = frame[8] * 256 + frame[9];
+    const wireAddress = frame[8] * 256 + frame[9];
     try {
       const bytes = await this.transport.request(frame);
       return parseReadAnswer(bytes, address, count);
     } catch (err) {
-      throw new ModbusError(`${err.message} (asked for ${address}, register ${offset})`);
+      throw new ModbusError(`${err.message} (asked for ${address}, on the wire ${wireAddress})`);
     }
   }
 }
@@ -157,19 +173,10 @@ class Connection {
 /**
  * Build the 12-byte Modbus TCP read request for function code 0x03.
  *
- * THE ADDRESS OFFSET, WHICH COST A ROUND ON A REAL DEVICE
- * SunSpec addresses are written with a base of 40000: the first register is
- * 40000, the "SunS" marker. Modbus itself counts from zero, so the register a
- * client asks for is `address - SUNSPEC_BASE`.
- *
- * An earlier version subtracted one more, on the assumption that the documented
- * numbers followed the "40001 = the first holding register" convention. On the
- * real device that made every read land one register too low, and the meter
- * answered `Modbus exception 2` — illegal data address — for a path that is
- * documented. The offset is now exactly the difference from the base.
+ * The address goes on the wire exactly as documented: no offset, no base to
+ * subtract. See the note at the top of this file for the two rounds this cost.
  */
 export function buildReadRequest(address, count, unitId = 1) {
-  const offset = address - SUNSPEC_BASE;
   const frame = new Uint8Array(12);
   const view = new DataView(frame.buffer);
   view.setUint16(0, 0); // transaction id
@@ -177,7 +184,7 @@ export function buildReadRequest(address, count, unitId = 1) {
   view.setUint16(4, 6); // length: unit + function + 4 payload bytes
   frame[6] = unitId;
   frame[7] = 0x03; // read holding registers
-  view.setUint16(8, offset);
+  view.setUint16(8, address);
   view.setUint16(10, count);
   return frame;
 }
@@ -234,6 +241,18 @@ export class WattwaechterModbus {
     this.info = await this.readIdentity();
     this.usesFloatModel = await this.hasFloatModel();
     return this.info;
+  }
+
+  /**
+   * The self-test the documentation describes: the first two registers must
+   * spell "SunS". A cheap way to confirm the addressing before reading
+   * anything else, and to say so clearly when it fails.
+   */
+  async checkSunSpecId() {
+    const values = await this.connection.readHolding(SUNSPEC_BASE, 2);
+    const ok = values[0] === SUNSPEC_ID[0] && values[1] === SUNSPEC_ID[1];
+    if (!ok) throw new ModbusError(`Not a SunSpec map: 40000 answered ${values.join(', ')}`);
+    return true;
   }
 
   /** Read the SunSpec Common Block. */
