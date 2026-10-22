@@ -8,11 +8,15 @@
     "fr": "Lit le WattWächter Plus via Modbus TCP et affiche la puissance, la consommation et l'injection dans Gladys Assistant.",
     "es": "Lee el WattWächter Plus por Modbus TCP y muestra potencia, consumo y vertido en Gladys Assistant."
   },
-  "version": "1.0.0",
-  "docker_image": "ghcr.io/tomgermany/gladys-wattwaechter:1.0.0",
+  "version": "1.1.0",
+  "docker_image": "ghcr.io/tomgermany/gladys-wattwaechter:1.1.0",
   "gladys_version": ">=5.1.0",
-  "categories": ["energy"],
-  "transports": ["local"],
+  "categories": [
+    "energy"
+  ],
+  "transports": [
+    "local"
+  ],
   "config_schema": [
     {
       "key": "intro",
@@ -208,8 +212,24 @@
           "required": false,
           "default": "kWh",
           "options": [
-            { "value": "kWh", "label": { "de": "kWh", "en": "kWh", "fr": "kWh", "es": "kWh" } },
-            { "value": "Wh", "label": { "de": "Wh", "en": "Wh", "fr": "Wh", "es": "Wh" } }
+            {
+              "value": "kWh",
+              "label": {
+                "de": "kWh",
+                "en": "kWh",
+                "fr": "kWh",
+                "es": "kWh"
+              }
+            },
+            {
+              "value": "Wh",
+              "label": {
+                "de": "Wh",
+                "en": "Wh",
+                "fr": "Wh",
+                "es": "Wh"
+              }
+            }
           ]
         },
         {
@@ -259,25 +279,56 @@
           },
           "type": "select",
           "options": [
-            { "value": "over", "label": { "de": "Überschritten", "en": "Exceeded", "fr": "Dépassée", "es": "Superado" } },
-            { "value": "under", "label": { "de": "Unterschritten", "en": "Fallen below", "fr": "En dessous", "es": "Por debajo" } }
+            {
+              "value": "over",
+              "label": {
+                "de": "Überschritten",
+                "en": "Exceeded",
+                "fr": "Dépassée",
+                "es": "Superado"
+              }
+            },
+            {
+              "value": "under",
+              "label": {
+                "de": "Unterschritten",
+                "en": "Fallen below",
+                "fr": "En dessous",
+                "es": "Por debajo"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
           "key": "direction",
-          "label": { "de": "Richtung", "en": "Direction", "fr": "Direction", "es": "Dirección" },
+          "label": {
+            "de": "Richtung",
+            "en": "Direction",
+            "fr": "Direction",
+            "es": "Dirección"
+          },
           "type": "string"
         },
         {
           "key": "limit",
-          "label": { "de": "Grenze in Watt", "en": "Limit in watts", "fr": "Limite en watts", "es": "Límite en vatios" },
+          "label": {
+            "de": "Grenze in Watt",
+            "en": "Limit in watts",
+            "fr": "Limite en watts",
+            "es": "Límite en vatios"
+          },
           "type": "number"
         },
         {
           "key": "power",
-          "label": { "de": "Leistung in Watt", "en": "Power in watts", "fr": "Puissance en watts", "es": "Potencia en vatios" },
+          "label": {
+            "de": "Leistung in Watt",
+            "en": "Power in watts",
+            "fr": "Puissance en watts",
+            "es": "Potencia en vatios"
+          },
           "type": "number"
         }
       ]
@@ -303,22 +354,42 @@
         {
           "key": "power",
           "type": "number",
-          "label": { "de": "Leistung in Watt", "en": "Power in watts", "fr": "Puissance en watts", "es": "Potencia en vatios" }
+          "label": {
+            "de": "Leistung in Watt",
+            "en": "Power in watts",
+            "fr": "Puissance en watts",
+            "es": "Potencia en vatios"
+          }
         },
         {
           "key": "consumption",
           "type": "number",
-          "label": { "de": "Bezug in kWh", "en": "Consumption in kWh", "fr": "Consommation en kWh", "es": "Consumo en kWh" }
+          "label": {
+            "de": "Bezug in kWh",
+            "en": "Consumption in kWh",
+            "fr": "Consommation en kWh",
+            "es": "Consumo en kWh"
+          }
         },
         {
           "key": "feed_in",
           "type": "number",
-          "label": { "de": "Einspeisung in kWh", "en": "Feed-in in kWh", "fr": "Injection en kWh", "es": "Vertido en kWh" }
+          "label": {
+            "de": "Einspeisung in kWh",
+            "en": "Feed-in in kWh",
+            "fr": "Injection en kWh",
+            "es": "Vertido en kWh"
+          }
         },
         {
           "key": "meter_number",
           "type": "string",
-          "label": { "de": "Geräte-ID (MAC-Adresse)", "en": "Device ID (MAC address)", "fr": "ID de l’appareil (adresse MAC)", "es": "ID del aparato (dirección MAC)" }
+          "label": {
+            "de": "Geräte-ID (MAC-Adresse)",
+            "en": "Device ID (MAC address)",
+            "fr": "ID de l’appareil (adresse MAC)",
+            "es": "ID del aparato (dirección MAC)"
+          }
         }
       ]
     },
@@ -342,12 +413,49 @@
           "type": "select",
           "required": false,
           "default": "day",
-          "label": { "de": "Zeitraum", "en": "Period", "fr": "Période", "es": "Periodo" },
+          "label": {
+            "de": "Zeitraum",
+            "en": "Period",
+            "fr": "Période",
+            "es": "Periodo"
+          },
           "options": [
-            { "value": "day", "label": { "de": "Heute", "en": "Today", "fr": "Aujourd'hui", "es": "Hoy" } },
-            { "value": "week", "label": { "de": "7 Tage", "en": "7 days", "fr": "7 jours", "es": "7 días" } },
-            { "value": "month", "label": { "de": "30 Tage", "en": "30 days", "fr": "30 jours", "es": "30 días" } },
-            { "value": "year", "label": { "de": "365 Tage", "en": "365 days", "fr": "365 jours", "es": "365 días" } }
+            {
+              "value": "day",
+              "label": {
+                "de": "Heute",
+                "en": "Today",
+                "fr": "Aujourd'hui",
+                "es": "Hoy"
+              }
+            },
+            {
+              "value": "week",
+              "label": {
+                "de": "7 Tage",
+                "en": "7 days",
+                "fr": "7 jours",
+                "es": "7 días"
+              }
+            },
+            {
+              "value": "month",
+              "label": {
+                "de": "30 Tage",
+                "en": "30 days",
+                "fr": "30 jours",
+                "es": "30 días"
+              }
+            },
+            {
+              "value": "year",
+              "label": {
+                "de": "365 Tage",
+                "en": "365 days",
+                "fr": "365 jours",
+                "es": "365 días"
+              }
+            }
           ]
         }
       ],
@@ -355,12 +463,22 @@
         {
           "key": "value",
           "type": "number",
-          "label": { "de": "Verbrauch des Zeitraums in kWh", "en": "Period consumption in kWh", "fr": "Consommation de la période en kWh", "es": "Consumo del periodo en kWh" }
+          "label": {
+            "de": "Verbrauch des Zeitraums in kWh",
+            "en": "Period consumption in kWh",
+            "fr": "Consommation de la période en kWh",
+            "es": "Consumo del periodo en kWh"
+          }
         },
         {
           "key": "period",
           "type": "string",
-          "label": { "de": "Zeitraum", "en": "Period", "fr": "Période", "es": "Periodo" }
+          "label": {
+            "de": "Zeitraum",
+            "en": "Period",
+            "fr": "Période",
+            "es": "Periodo"
+          }
         }
       ]
     }

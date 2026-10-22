@@ -7,6 +7,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-22
 ### Fixed
 
 - **The dashboard widget no longer says "not implemented".** A widget is drawn by Gladys from the
