@@ -17,12 +17,11 @@
 // `frequency-sensor`, which does not exist in Gladys. Every feature here now
 // belongs to `energy-sensor`, the category that carries a three-phase meter.
 //
-// THE TWO ENERGY COUNTERS ARE THE POINT
-// `consumption` and `feed_in` are not ordinary readings: they are cumulative
-// meter totals. In Gladys they belong to the ENERGY category with the
-// kilowatt-hour unit, because that is what makes them show up in the energy
-// monitoring and let the user build a consumption view from them. The live
-// readings (power, voltage, current, frequency) are ordinary values.
+// THE OTHER HARD RULE: EXTERNAL IDS
+// Gladys checks the beginning of every external id and refuses the whole device
+// when it does not match. See PLATFORM_TYPE below: the id is built by the SDK's
+// `externalIds()`, never by hand, and the type segment stays empty because the
+// selector already names the integration.
 //
 // UNITS, AND WHY THEY ARE CONVERTED HERE
 // The meter reports the counters in watt-hours and the power in watts. Gladys
@@ -151,80 +150,92 @@ export const FEATURES = [
 ];
 
 /**
- * The identity of the device in Gladys.
+ * The platform id of ONE meter, and why it is not the name.
  *
- * WHY host+serial AND NOT THE NAME
- * The external id has to survive a rename by the user and stay unique when two
- * meters sit in the same installation. The serial is the device's own, and the
- * host keeps the id stable when someone renames the unit.
+ * Gladys keys history, scenes and dashboards on the external id, so it has to
+ * survive a rename and stay unique when two meters share an installation. The
+ * serial is what the hardware itself reports; the host is only a fallback for a
+ * device that answers nothing there. A meter that keeps its identity keeps its
+ * history and its scenes when its IP changes.
  */
+export const platformId = (device) => device.serial || device.host;
+
+/**
+ * The type segment of the external ids, and why it is empty.
+ *
+ * The SDK composes `ext:<selector>:<type>:<platformId>`, and Gladys checks only
+ * the part up to the selector:
+ *
+ *   must start with "ext:ext-dev-wattwachter-plus:"
+ *
+ * The selector is the integration's own name, set by the supervisor
+ * (GLADYS_INTEGRATION_SELECTOR), and it is already in the id. Passing
+ * `'wattwaechter'` as the type made the id read
+ *   ext:ext-dev-wattwachter-plus:wattwaechter:ACEBE61BCB98
+ * where the check wants a platform id right after the selector, so the whole
+ * device was refused. Leaving the type empty puts the platform id exactly where
+ * the check expects it.
+ */
+export const PLATFORM_TYPE = '';
+
+/** The device external id, built by the SDK and never by hand. */
 export function deviceExternalId(gladys, device) {
-  return `wattwaechter:${device.host}:${device.serial || 'unknown'}`;
+  return gladys.externalIds(PLATFORM_TYPE, platformId(device)).device;
 }
 
-/** The name shown in Discovery. The model string comes from the SunSpec Common Block. */
-export function deviceName(device) {
-  return device.name || 'WattWächter';
+/** The value to publish for one feature, or null when the reading is missing. */
+export function featureValue(feature, state) {
+  const raw = state[feature.key];
+  if (raw === undefined || raw === null) return null;
+  return feature.scale === 1 ? raw : Math.round(raw * feature.scale * 1000) / 1000;
 }
 
 /**
- * Build the device payload for `publishDiscoveredDevices`.
+ * Build the discovery payload: "here is a meter, with these readings".
  *
- * A feature is built only for a reading that is really there, so a meter that
- * does not report a third phase does not get an empty third phase. When a whole
- * device has no counters at all, it is logged rather than published half-built:
- * a device with no feature would show up in Discovery as an empty entry.
+ * Gladys creates nothing from this. It is an offer shown in the Discovery tab.
  */
 export function buildDevice(gladys, device, state) {
+  const ids = gladys.externalIds(PLATFORM_TYPE, platformId(device));
   const features = [];
-  for (const spec of FEATURES) {
-    const raw = state[spec.key];
-    if (typeof raw !== 'number' || Number.isNaN(raw)) continue;
+
+  for (const f of FEATURES) {
+    // Only what the meter really answered, see the note at the top.
+    if (featureValue(f, state) === null) continue;
     features.push({
-      external_id: `${deviceExternalId(gladys, device)}:${spec.key}`,
-      name: spec.name,
-      category: spec.category,
-      type: spec.type,
-      unit: spec.unit,
+      name: f.name,
+      external_id: ids.feature(f.key),
+      category: f.category,
+      type: f.type,
+      unit: f.unit,
       min: 0,
-      max: spec.max ?? 0,
-      read_only: true,
-      has_feedback: false,
-      // The last known value, so the device is not empty the moment it appears.
-      last_value: Math.round(raw * spec.scale * 100) / 100,
-      last_value_changed: new Date().toISOString(),
+      max: 0,
+      read_only: true, // a meter measures, it does not switch
+      has_feedback: false, // nothing to acknowledge: there is no command
+      keep_history: f.keep_history !== false,
     });
   }
 
-  if (features.length === 0) {
-    logger.warn('No reading produced a feature; the device is not published');
-  }
-
   return {
-    name: deviceName(device),
-    external_id: deviceExternalId(gladys, device),
-    selector: deviceExternalId(gladys, device),
+    name: device.name || 'WattWächter',
+    external_id: ids.device,
+    model: device.model,
+    should_poll: true,
     features,
-    // No poll frequency here: the manifest's poll_frequency drives the poll.
   };
 }
 
-/**
- * Publish every reading as a state, so history and the dashboard fill up.
- *
- * Values are pushed one by one with the feature external id. A key with no
- * matching feature is skipped instead of published, and a failed push is logged
- * and stepped over: one refused reading must not stop the other eleven.
- */
+/** Publish the value of every feature from one reading snapshot. */
 export async function publishAll(gladys, device, state) {
-  for (const spec of FEATURES) {
-    const raw = state[spec.key];
-    if (typeof raw !== 'number' || Number.isNaN(raw)) continue;
-    const value = Math.round(raw * spec.scale * 100) / 100;
+  const ids = gladys.externalIds(PLATFORM_TYPE, platformId(device));
+  for (const f of FEATURES) {
+    const value = featureValue(f, state);
+    if (value === null) continue;
     try {
-      await gladys.publishState(`${deviceExternalId(gladys, device)}:${spec.key}`, value);
+      await gladys.publishState(ids.feature(f.key), value);
     } catch (err) {
-      logger.warn(`Could not publish ${spec.name}: ${err.message}`);
+      // One refused reading must not stop the other eleven.
+      logger.warn(`Could not publish ${f.name}: ${err.message}`);
     }
   }
 }
