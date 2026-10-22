@@ -39,7 +39,7 @@ jobs:
           # The full history, so the changelog and the tags are all there.
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
 
