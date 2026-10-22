@@ -51,8 +51,6 @@
 // card on two dashboards can show two different periods.
 // -----------------------------------------------------------------------------
 
-import { KEY } from './wattwaechter/labels.js';
-
 /** Widget key, as declared in the manifest `widgets` field. */
 export const METER_WIDGET = 'meter';
 
