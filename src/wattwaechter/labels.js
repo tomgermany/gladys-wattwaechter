@@ -1,6 +1,5 @@
 // -----------------------------------------------------------------------------
-// The words the integration shows at runtime, in the four languages of the
-// manifest.
+// The words the integration shows, in the four languages of the manifest.
 //
 // WHY A FILE OF ITS OWN
 // Texts come from two places, and they are not interchangeable:
@@ -8,14 +7,24 @@
 //     actions and the field labels. There, a text is a language map and Gladys
 //     picks the language;
 //   - the CODE builds the widget content and the scene outputs at runtime, and
-//     that vocabulary has no language map: a label is a single string.
+//     there is no language map in that vocabulary: a label is a single string.
 // So the runtime texts live here, and the caller passes the language it wants.
 //
 // WHICH LANGUAGE? The language of the Gladys interface is not sent to the
 // integration, so there is no way to follow it automatically. These texts are
-// German, which matches the manifest (German first) and the device itself, whose
-// own answers are German. Everything Gladys renders from the manifest is
-// translated properly; only the strings this file produces are fixed.
+// German, which matches the manifest (German first) and the device itself,
+// whose own answers are German. Everything that Gladys renders from the manifest
+// is translated properly; only the strings this file produces are fixed.
+//
+// meterNumber IS A DEVICE ID, NOT A UTILITY METER NUMBER
+// The value shown under it is the SunSpec Common Block's SN field (40052-40067),
+// which the manufacturer's register table documents as the MAC address, twelve
+// hex characters. It is not the meter number of the electricity meter (the
+// Zählpunktbezeichnung, something like "ISK 9525 094"). That number is in
+// neither interface: the Common Block carries only manufacturer, model,
+// firmware, MAC and device address, and the REST API's endpoint list has no
+// meter field. The label therefore says what the value really is. Calling it a
+// meter number was a mistake, and it showed a MAC address under a false name.
 // -----------------------------------------------------------------------------
 
 /** Feature keys, kept in one place so no file invents its own spelling. */
@@ -28,9 +37,8 @@ export const KEY = {
 const TEXT = {
   de: {
     notConnected: 'Kein Zugriff auf den WattWächter. Adresse in der Konfiguration prüfen.',
-    needsToken: 'Für den Zeitraumwert wird das Lesetoken der REST-API gebraucht.',
     power: 'Leistung',
-    meterNumber: 'Zählernummer',
+    meterNumber: 'Geräte-ID',
     period_day: 'Heute',
     period_week: '7 Tage',
     period_month: '30 Tage',
@@ -42,9 +50,8 @@ const TEXT = {
   },
   en: {
     notConnected: 'No access to the WattWächter. Check the address in the configuration.',
-    needsToken: 'The period total needs the REST API read token.',
     power: 'Power',
-    meterNumber: 'Meter number',
+    meterNumber: 'Device ID',
     period_day: 'Today',
     period_week: '7 days',
     period_month: '30 days',
@@ -56,9 +63,8 @@ const TEXT = {
   },
   fr: {
     notConnected: 'Pas d’accès au WattWächter. Vérifiez l’adresse dans la configuration.',
-    needsToken: 'Le total de la période nécessite le jeton de lecture de l’API REST.',
     power: 'Puissance',
-    meterNumber: 'Numéro de compteur',
+    meterNumber: 'ID de l’appareil',
     period_day: "Aujourd'hui",
     period_week: '7 jours',
     period_month: '30 jours',
@@ -66,13 +72,12 @@ const TEXT = {
     reading_day: 'Lecture du total du jour…',
     reading_week: 'Lecture du total de la semaine…',
     reading_month: 'Lecture du total du mois…',
-    reading_year: "Lecture du total de l'année…",
+    reading_year: 'Lecture du total de l’année…',
   },
   es: {
     notConnected: 'Sin acceso al WattWächter. Comprueba la dirección en la configuración.',
-    needsToken: 'El total del periodo necesita el token de lectura de la API REST.',
     power: 'Potencia',
-    meterNumber: 'Número de contador',
+    meterNumber: 'ID del aparato',
     period_day: 'Hoy',
     period_week: '7 días',
     period_month: '30 días',
@@ -84,7 +89,7 @@ const TEXT = {
   },
 };
 
-/** The language used for the runtime texts. */
+/** The language every runtime text falls back to. */
 export const LANGUAGE = 'de';
 
 /**
