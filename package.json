@@ -1,8 +1,8 @@
 {
-  "name": "gladys-integration-template-js",
+  "name": "gladys-wattwaechter",
   "version": "1.0.0",
   "private": true,
-  "description": "Official starter template to build an external integration for Gladys Assistant with the JavaScript SDK.",
+  "description": "Gladys Assistant external integration for the WattWächter Plus electricity meter reader.",
   "type": "module",
   "main": "index.js",
   "scripts": {
@@ -12,12 +12,8 @@
     "format:check": "prettier --check .",
     "test": "node --test"
   },
-  "engines": {
-    "node": ">=22"
-  },
-  "dependencies": {
-    "@gladysassistant/integration-sdk": "^0.15.0"
-  },
+  "engines": { "node": ">=22" },
+  "dependencies": { "@gladysassistant/integration-sdk": "^0.15.0" },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.12.0",
