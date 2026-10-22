@@ -1,45 +1,34 @@
 // -----------------------------------------------------------------------------
 // Integration configuration.
 //
-// The configuration is filled in by the user in Gladys, from the `config_schema`
-// declared in `gladys-assistant-integration.json`. The SDK fetches it for you
-// (`gladys.getConfig()`) and notifies you of every change through
-// `gladys.onConfigUpdated()`.
+// Filled in by the user in Gladys, from the `config_schema` of
+// `gladys-assistant-integration.json`. The SDK fetches it (`gladys.getConfig()`)
+// and notifies every change through `gladys.onConfigUpdated()`.
 //
-// This module only provides defaults and normalizes the received object, so the
-// rest of the code never has to deal with `undefined`.
+// This module only provides defaults and normalises the object, so the rest of
+// the code never deals with `undefined`.
 // -----------------------------------------------------------------------------
 
-// Defaults: they MUST stay consistent with the `default` values declared in the
-// `config_schema` of the manifest.
+// Defaults MUST stay consistent with the `default` values of the manifest
+// `config_schema` (checked by test/manifest.test.js).
 export const DEFAULT_CONFIG = {
-  latitude: 48.8566, // Paris
-  longitude: 2.3522,
-  unit: 'celsius', // 'celsius' | 'fahrenheit'
-  // Seconds between two reads of the polled sensors. Gladys polls at most once
-  // a minute: slower intervals are applied by skipping polls (see
-  // createPoller in src/devices/index.js).
-  poll_frequency: 300,
-  // Reserved key (NOT in config_schema): because the manifest declares both
-  // 'local' and 'cloud' in its `transports` field, Gladys shows a standard
-  // "Prefer the local connection" toggle and sends the user's choice here.
-  // Read-only for the integration; defaults to true.
-  GLADYS_PREFER_LOCAL: true,
+  host: '',
+  modbus_port: 502,
+  read_token: '',
+  poll_frequency: 60, // seconds between two reads
+  power_max: 3500, // fire "too high" above this, in watts; 0 disables this side
+  power_min: 0, // fire "too low" below this, in watts; 0 disables this side
 };
 
-/**
- * Merge the user config with the defaults.
- * @param {Record<string, unknown>} raw config returned by the SDK
- */
 export function normalizeConfig(raw = {}) {
   return {
     ...DEFAULT_CONFIG,
     ...raw,
-    // Force the types: config may arrive as strings from a form.
-    latitude: Number(raw.latitude ?? DEFAULT_CONFIG.latitude),
-    longitude: Number(raw.longitude ?? DEFAULT_CONFIG.longitude),
+    host: String(raw.host ?? DEFAULT_CONFIG.host).trim(),
+    modbus_port: Number(raw.modbus_port ?? DEFAULT_CONFIG.modbus_port),
+    read_token: String(raw.read_token ?? DEFAULT_CONFIG.read_token).trim(),
     poll_frequency: Number(raw.poll_frequency ?? DEFAULT_CONFIG.poll_frequency),
-    // The preference is a boolean; anything but an explicit false means true.
-    GLADYS_PREFER_LOCAL: raw.GLADYS_PREFER_LOCAL !== false,
+    power_max: Number(raw.power_max ?? DEFAULT_CONFIG.power_max),
+    power_min: Number(raw.power_min ?? DEFAULT_CONFIG.power_min),
   };
 }
