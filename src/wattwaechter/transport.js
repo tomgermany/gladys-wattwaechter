@@ -13,12 +13,20 @@
 // question. Reconnecting per register would be slow and, on some devices,
 // refused outright.
 //
+// HOW MANY CONNECTIONS A DEVICE WILL TAKE
+// The WattWächter allows at most TWO Modbus clients at a time. Keeping one open
+// for the poll is fine; leaving extra ones behind is not, because they eat the
+// two slots. The connection test in the Configuration screen opens its own, so
+// everything outside the poll loop calls `reset()` when it is done. The log from
+// a real device is what taught this: one read succeeded, and the very next
+// request for the same register timed out.
+//
 // THE AWKWARD PART: KNOWING WHEN THE ANSWER ENDS
 // A TCP stream has no message boundaries, so a single read may return half a
 // frame, or two frames at once. The Modbus MBAP header solves this: its fifth
 // and sixth bytes say how many bytes follow, so a complete frame is 6 + that
-// length. The reader waits for the header, learns the length, then waits for
-// the rest. That logic is the whole reason this file is longer than three lines.
+// length. The reader waits for the header, learns the length, then waits for the
+// rest. That logic is the whole reason this file is longer than three lines.
 //
 // TIMEOUTS
 // Two clocks: one for the connection, one per answer. A device that accepts the
@@ -57,9 +65,14 @@ export class ModbusSocket {
     this.buffered = Buffer.alloc(0);
   }
 
+  /** True while a usable connection is open. */
+  get isOpen() {
+    return Boolean(this.socket && !this.socket.destroyed);
+  }
+
   /** Open the connection if it is not open yet. Resolves when it is usable. */
   async open() {
-    if (this.socket && !this.socket.destroyed) return;
+    if (this.isOpen) return;
     this.socket = await new Promise((resolve, reject) => {
       const socket = this.socketFactory({ host: this.host, port: this.port });
       const timer = setTimeout(() => {
@@ -88,6 +101,9 @@ export class ModbusSocket {
 
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
+        // A request that never answers leaves the connection in an unknown
+        // state, so drop it: the next request then starts from a fresh socket
+        // instead of inheriting the stuck one.
         this.fail(new TransportError(`No answer within ${this.responseTimeoutMs} ms`));
       }, this.responseTimeoutMs);
 
@@ -109,7 +125,7 @@ export class ModbusSocket {
    * Collect bytes until a whole Modbus frame is there.
    *
    * The MBAP header's length field counts the bytes that follow it, so a whole
-   * frame is 6 + length bytes. Anything beyond belongs to the next answer and
+   * frame is `6 + length` bytes. Anything beyond belongs to the next answer and
    * stays in the buffer.
    */
   onData(chunk) {
@@ -126,6 +142,26 @@ export class ModbusSocket {
     const pending = this.pending;
     this.pending = null;
     pending.resolve(new Uint8Array(frame));
+  }
+
+  /**
+   * Drop the connection on purpose, so the next request opens a fresh one.
+   *
+   * WHY THIS EXISTS
+   * The WattWächter allows at most two Modbus clients at a time. A connection
+   * left open after a read is not free: it eats one of those two slots, and the
+   * connection test in the Configuration screen — which opens its own — is then
+   * refused or times out. The log from a real device showed exactly that: one
+   * successful read, then `No answer within 5000 ms` for the very same register.
+   * Everything that talks to the device outside the poll loop gives its
+   * connection back when it is done.
+   */
+  reset() {
+    const socket = this.socket;
+    this.socket = null;
+    this.pending = null;
+    this.buffered = Buffer.alloc(0);
+    if (socket && !socket.destroyed) socket.destroy();
   }
 
   /** Reject whatever is waiting and drop the connection. */

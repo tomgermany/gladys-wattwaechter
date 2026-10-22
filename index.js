@@ -16,16 +16,11 @@
 // message the moment the connection opens, and a handler registered later would
 // simply miss it.
 //
-// TWO CONNECTIONS TO THE SAME DEVICE, ON PURPOSE
-// Modbus for the live readings, the REST API for the period totals. Neither can
-// do the other's job, and both go to the same address. The REST client is only
-// built when a read token is configured, because the period totals are the only
-// thing that needs it.
-//
-// A METER CANNOT BE WRITTEN TO
-// There is no `onSetValue` handler here, and every feature is read-only. On the
-// Gladys side that means a device that shows values and offers no controls,
-// which is exactly right for a meter.
+// ONE CONNECTION FOR THE POLL, NONE FOR ANYTHING ELSE
+// The device allows at most two Modbus clients. The poll keeps one open; the
+// connection test opens its own and gives it back when it is done, success or
+// failure alike. Without that, the second attempt finds both slots taken and
+// times out — which is exactly what a real log showed.
 //
 // SDK: @gladysassistant/integration-sdk ^0.15 (Gladys >= 5.1.0).
 // -----------------------------------------------------------------------------
@@ -41,7 +36,7 @@ const gladys = new GladysIntegration();
 // --- State of the running integration ----------------------------------------
 let config = normalizeConfig(); // the user settings, re-read on every change
 let modbus = null; // the Modbus connection, null while we have none
-let api = null; // the REST client, only when a read token is set
+let api = null; // the REST client, used for the period totals
 let state = null; // last readings
 let device = null; // { host, serial, model, name }: the identity of the meter
 let lastRead = 0; // when the readings were taken, to honour poll_frequency
@@ -70,14 +65,11 @@ async function readConfig() {
  * Resolves true on success. On failure the connection status carries the reason,
  * which is the text shown in the Configuration screen, and the log names the
  * register or the endpoint that failed.
- *
- * Nothing here throws past this function, so a dead meter never breaks the
- * interface, and a group of readings that does not answer is tolerated and
- * logged rather than fatal.
  */
 async function connectDevice() {
   // Start from a clean slate: a failed attempt must never leave the previous
   // connection behind, or the next read would talk to a stale socket.
+  modbus?.transport?.reset();
   modbus = null;
   api = null;
   state = null;
@@ -109,13 +101,17 @@ async function connectDevice() {
     state = await modbus.readAll();
     logger.info(
       `Meter ready: ${device.name} (${device.serial || 'no serial'}), firmware ${info.firmware}, ` +
-        `${Object.keys(state).length} readings, ` +
-        `modbus model ${modbus.usesFloatModel ? '213 (float)' : '203 (scaled int)'}, ` +
+        `${Object.keys(state).length} readings, modbus model ${modbus.usesFloatModel ? '213 (float)' : '203 (scaled int)'}, ` +
         `history API ${api ? 'enabled' : 'disabled (no read token)'}`,
     );
     await gladys.setConnectionStatus(true);
     return true;
   } catch (err) {
+    // A failed attempt must not leave a half-open socket behind: the device
+    // allows only two Modbus clients, and a stranded one would block the next
+    // attempt. A real log showed a read succeeding and then the very next
+    // request timing out, which is that stranded connection.
+    modbus?.transport?.reset();
     logger.error(`WattWächter connection failed (${config.host}): ${err.message}`);
     await gladys
       .setConnectionStatus(false, {
@@ -200,9 +196,6 @@ async function firePowerEvents() {
 // --- Discovery ---------------------------------------------------------------
 // Gladys calls this when the user asks for a scan in the Discovery tab.
 //
-// The first log line is deliberate: it proves the request arrived. If a scan
-// ends with no device AND no line in the log, the request never reached the
-// integration, and the search belongs in the manifest, not in the meter.
 gladys.onScanRequest(async () => {
   logger.info('onScanRequest -> called by Gladys');
   if (!modbus && !(await connectDevice())) {
@@ -213,8 +206,6 @@ gladys.onScanRequest(async () => {
 });
 
 // --- Polling -----------------------------------------------------------------
-// Gladys ticks a polled device once a minute at most; the interval the user
-// chose is applied by skipping ticks.
 gladys.onPoll(async (polled) => {
   if (!modbus || !device) return;
   if (polled.external_id !== deviceExternalId(gladys, device)) return;
@@ -230,8 +221,9 @@ gladys.onPoll(async (polled) => {
  */
 gladys.onAction('test_connection', async () => {
   await readConfig().catch(() => {});
+  let probe = null;
   try {
-    const probe = new WattwaechterModbus({ host: config.host, port: config.modbus_port });
+    probe = new WattwaechterModbus({ host: config.host, port: config.modbus_port });
     const info = await probe.connect();
     const readings = await probe.readAll();
     const count = Object.keys(readings).length;
@@ -251,12 +243,14 @@ gladys.onAction('test_connection', async () => {
       fr: `Aucune réponse exploitable de ${config.host} : ${err.message}. Le serveur Modbus est-il activé dans l'appareil ?`,
       es: `Sin respuesta utilizable de ${config.host}: ${err.message}. ¿Está activado el servidor Modbus en el aparato?`,
     };
+  } finally {
+    // Give the slot back, success or failure: the device takes only two
+    // Modbus clients, and the poll holds one of them.
+    probe?.transport?.reset();
   }
 });
 
 // --- Connection lifecycle ----------------------------------------------------
-// Everything below runs once per (re)connection, the very first one included.
-// `connected` fires after the SDK has authenticated, so getConfig() is safe.
 gladys.on('connected', async () => {
   try {
     await readConfig();
@@ -267,8 +261,6 @@ gladys.on('connected', async () => {
   }
 });
 
-// The user saved the Configuration screen: reconnect from scratch and tell the
-// widget, because a changed host changes everything it shows.
 gladys.onConfigUpdated(async (newConfig) => {
   config = normalizeConfig(newConfig);
   powerSide = 'normal';
@@ -277,9 +269,6 @@ gladys.onConfigUpdated(async (newConfig) => {
 });
 
 // --- Shutdown ----------------------------------------------------------------
-// The container is stopped on every restart and update: close the socket so the
-// device does not keep a connection open that nobody will answer on (it allows
-// only two at a time, and a stale one would eat one of them).
 gladys.handleShutdown(async (signal) => {
   logger.info(`Received ${signal} -> graceful shutdown`);
   await modbus?.connection?.close().catch(() => {});
