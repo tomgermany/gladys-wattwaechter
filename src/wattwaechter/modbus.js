@@ -12,6 +12,17 @@
 // scale factor) and, from firmware 1.2.1, 213 (the same readings as float32).
 // The register base is the SunSpec standard, 40000.
 //
+// THE ADDRESS OFFSET, WHICH COST A ROUND ON A REAL DEVICE
+// SunSpec addresses are written with a base of 40000: the first register is
+// 40000, the "SunS" marker. Modbus itself counts from zero, so the register a
+// client asks for is address - 40000.
+//
+// An earlier version subtracted one more, assuming the documented numbers
+// followed the "40001 = the first holding register" convention. On the real
+// device every read then landed one register too low, and the meter answered
+// `Modbus exception 2` — illegal data address — for a path the documentation
+// lists. See buildReadRequest() below, where the offset now lives.
+//
 // TWO WAYS TO READ THE SAME NUMBER, AND WHY BOTH ARE HERE
 //   Model 203: each reading is an int16, and a SECOND register holds its scale
 //              factor. The value is raw * 10^scale.
@@ -127,21 +138,38 @@ class Connection {
   /**
    * Read `count` registers starting at `address`, function code 0x03.
    *
-   * The answer echoes the first bytes of the request and then carries a byte
-   * count and the register bytes.
+   * An exception from the device is re-thrown with the register that actually
+   * went on the wire, in both notations: "illegal data address" is only
+   * diagnosable when the log says which register was asked for.
    */
   async readHolding(address, count, unitId = 1) {
     const frame = buildReadRequest(address, count, unitId);
-    const bytes = await this.transport.request(frame);
-    return parseReadAnswer(bytes, address, count);
+    const offset = frame[8] * 256 + frame[9];
+    try {
+      const bytes = await this.transport.request(frame);
+      return parseReadAnswer(bytes, address, count);
+    } catch (err) {
+      throw new ModbusError(`${err.message} (asked for ${address}, register ${offset})`);
+    }
   }
 }
 
-/** Build the 12-byte Modbus TCP read request for function code 0x03. */
+/**
+ * Build the 12-byte Modbus TCP read request for function code 0x03.
+ *
+ * THE ADDRESS OFFSET, WHICH COST A ROUND ON A REAL DEVICE
+ * SunSpec addresses are written with a base of 40000: the first register is
+ * 40000, the "SunS" marker. Modbus itself counts from zero, so the register a
+ * client asks for is `address - SUNSPEC_BASE`.
+ *
+ * An earlier version subtracted one more, on the assumption that the documented
+ * numbers followed the "40001 = the first holding register" convention. On the
+ * real device that made every read land one register too low, and the meter
+ * answered `Modbus exception 2` — illegal data address — for a path that is
+ * documented. The offset is now exactly the difference from the base.
+ */
 export function buildReadRequest(address, count, unitId = 1) {
-  // Addresses are given in the SunSpec notation (40001, ...); Modbus itself
-  // uses the offset, so 40001 becomes 0.
-  const offset = address - SUNSPEC_BASE - 1;
+  const offset = address - SUNSPEC_BASE;
   const frame = new Uint8Array(12);
   const view = new DataView(frame.buffer);
   view.setUint16(0, 0); // transaction id
