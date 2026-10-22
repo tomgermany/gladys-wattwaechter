@@ -5,6 +5,8 @@ travers un **WattWächter Plus**. Tout reste sur votre réseau local : pas de cl
 
 ## Prérequis : activer Modbus
 
+**Wattwächter der Fa. Wattwächter, angebracht an den Zähler bei ihnen:[wattwächter] (https://www.wattwaechter.com/)/)** 
+
 **Le serveur Modbus est désactivé par défaut dans le WattWächter et doit d'abord être activé.** Sans
 cette étape, l'appareil ne répond pas sur le port 502 et l'intégration ne peut rien lire.
 
