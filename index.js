@@ -16,11 +16,20 @@
 // message the moment the connection opens, and a handler registered later would
 // simply miss it.
 //
-// ONE CONNECTION FOR THE POLL, NONE FOR ANYTHING ELSE
-// The device allows at most two Modbus clients. The poll keeps one open; the
-// connection test opens its own and gives it back when it is done, success or
-// failure alike. Without that, the second attempt finds both slots taken and
-// times out — which is exactly what a real log showed.
+// ONE CONNECTION, AND NOTHING ELSE OPENS A SECOND ONE
+// The WattWächter's Modbus server accepts at most TWO clients at a time and
+// keeps an idle connection for five minutes. One connection therefore belongs to
+// this process, and every read — poll, scan and the connection test alike — runs
+// on it. An earlier version let the connection test build its own client next to
+// the running one; on a real device that third client was refused and the test
+// timed out after five seconds. Two connections in this process would also be
+// pointless: the device counts clients, not purposes.
+//
+// A SECOND TRAP, AND WHY THERE IS ONE RETRY
+// Recreating the container leaves the old connection alive on the device side
+// until its idle timeout expires. The first attempt after a restart can hit that
+// occupied slot. One deliberate retry on a fresh socket rides it out; more would
+// only hammer the device.
 //
 // SDK: @gladysassistant/integration-sdk ^0.15 (Gladys >= 5.1.0).
 // -----------------------------------------------------------------------------
@@ -152,6 +161,41 @@ async function refresh() {
 }
 
 /**
+ * Run `task` on the one connection this process owns, and return its answer.
+ *
+ * THE RULE THIS ENFORCES
+ * The WattWächter's Modbus server accepts at most TWO clients at a time and
+ * keeps an idle connection for five minutes (manufacturer's Modbus TCP page).
+ * One connection therefore belongs to this process and nothing else opens a
+ * second one. An earlier version let the connection test build its own client,
+ * and on a real device that attempt timed out after five seconds while the first
+ * connection was still open — the third client was simply refused.
+ *
+ * A second trap sits right next to it, and this is why the retry exists: when
+ * Gladys runs the integration in a container and that container is recreated,
+ * the old connection survives on the device side until its idle timeout. The
+ * first attempt after a restart can then hit a slot that is still occupied. One
+ * deliberate retry on a fresh socket rides that out; anything beyond one retry
+ * would just hammer the device.
+ */
+async function withConnection(task) {
+  if (!modbus) {
+    if (!(await connectDevice())) throw new Error('Keine Verbindung zum WattWächter');
+  }
+  try {
+    return await task(modbus);
+  } catch (err) {
+    // The attempt may have run into the connection the device still holds open
+    // from before. Drop ours and try once more from a clean socket.
+    logger.warn(`Read failed (${err.message}) -> one retry on a fresh connection`);
+    modbus?.transport?.reset();
+    modbus = null;
+    if (!(await connectDevice())) throw new Error('Keine Verbindung zum WattWächter');
+    return await task(modbus);
+  }
+}
+
+/**
  * The "power crossed a limit" scene trigger.
  *
  * Why the comparison lives here and not in the scene: a scene trigger declared
@@ -218,22 +262,27 @@ gladys.onPoll(async (polled) => {
  * screen. It answers in words rather than only in the log, and it names the one
  * thing that is not obvious about this device: the Modbus server is off by
  * default and has to be switched on before anything can be read.
+ *
+ * It reads over the connection this process already owns. A client of its own
+ * would be a second connection, and the device takes only two — with the poll's
+ * connection sitting next to it, that second one was refused on a real device.
  */
 gladys.onAction('test_connection', async () => {
   await readConfig().catch(() => {});
-  let probe = null;
   try {
-    probe = new WattwaechterModbus({ host: config.host, port: config.modbus_port });
-    const info = await probe.connect();
-    const readings = await probe.readAll();
-    const count = Object.keys(readings).length;
+    const info = {};
+    const readings = await withConnection(async (connection) => {
+      // `info` is filled by connect(), so it is only set after a real connect.
+      Object.assign(info, connection.info ?? {});
+      return connection.readAll();
+    });
     const power = readings.power ?? '?';
     logger.info(`Connection test: ${info.model} (${info.firmware}) at ${config.host}`);
     return {
-      de: `Antwort: ${info.model}, Firmware ${info.firmware || 'unbekannt'}. ${count} Messwerte, Leistung ${power} W.`,
-      en: `Answered: ${info.model}, firmware ${info.firmware || 'unknown'}. ${count} readings, power ${power} W.`,
-      fr: `Réponse : ${info.model}, firmware ${info.firmware || 'inconnu'}. ${count} mesures, puissance ${power} W.`,
-      es: `Respuesta: ${info.model}, firmware ${info.firmware || 'desconocido'}. ${count} medidas, potencia ${power} W.`,
+      de: `Antwort: ${info.model}, Firmware ${info.firmware || 'unbekannt'}. ${Object.keys(readings).length} Messwerte, Leistung ${power} W.`,
+      en: `Answered: ${info.model}, firmware ${info.firmware || 'unknown'}. ${Object.keys(readings).length} readings, power ${power} W.`,
+      fr: `Réponse : ${info.model}, firmware ${info.firmware || 'inconnu'}. ${Object.keys(readings).length} mesures, puissance ${power} W.`,
+      es: `Respuesta: ${info.model}, firmware ${info.firmware || 'desconocido'}. ${Object.keys(readings).length} medidas, potencia ${power} W.`,
     };
   } catch (err) {
     logger.error(`Connection test failed (${config.host}): ${err.message}`);
@@ -243,10 +292,6 @@ gladys.onAction('test_connection', async () => {
       fr: `Aucune réponse exploitable de ${config.host} : ${err.message}. Le serveur Modbus est-il activé dans l'appareil ?`,
       es: `Sin respuesta utilizable de ${config.host}: ${err.message}. ¿Está activado el servidor Modbus en el aparato?`,
     };
-  } finally {
-    // Give the slot back, success or failure: the device takes only two
-    // Modbus clients, and the poll holds one of them.
-    probe?.transport?.reset();
   }
 });
 
