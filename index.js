@@ -9,6 +9,7 @@
 //   src/wattwaechter/modbus.js     the Modbus protocol and the register map
 //   src/wattwaechter/api.js        the REST API, for the history periods
 //   src/devices/meter.js           the meter as a Gladys device
+//   src/widgets.js                 the content of the dashboard card
 //   src/config.js                  defaults and normalisation
 //
 // THE ONE ORDERING RULE
@@ -16,14 +17,21 @@
 // message the moment the connection opens, and a handler registered later would
 // simply miss it.
 //
+// A HANDLER FOR EVERY MESSAGE, OR GLADYS SAYS "not implemented"
+// A widget is not drawn by the integration: Gladys asks for its content and
+// renders the answer. With no `onWidgetGet` registered for the widget key,
+// Gladys receives the SDK's default answer to an unhandled message — the literal
+// words "not implemented" on the dashboard card — and the integration looks
+// broken even while every value beside it is right. Both widget handlers are
+// therefore registered here, under the key the manifest declares.
+//
 // ONE CONNECTION, AND NOTHING ELSE OPENS A SECOND ONE
 // The WattWächter's Modbus server accepts at most TWO clients at a time and
 // keeps an idle connection for five minutes. One connection therefore belongs to
 // this process, and every read — poll, scan and the connection test alike — runs
 // on it. An earlier version let the connection test build its own client next to
 // the running one; on a real device that third client was refused and the test
-// timed out after five seconds. Two connections in this process would also be
-// pointless: the device counts clients, not purposes.
+// timed out after five seconds.
 //
 // A SECOND TRAP, AND WHY THERE IS ONE RETRY
 // Recreating the container leaves the old connection alive on the device side
@@ -35,10 +43,19 @@
 // -----------------------------------------------------------------------------
 
 import { GladysIntegration, logger } from '@gladysassistant/integration-sdk';
+
 import { normalizeConfig } from './src/config.js';
 import { WattwaechterModbus } from './src/wattwaechter/modbus.js';
 import { WattwaechterApi } from './src/wattwaechter/api.js';
-import { buildDevice, deviceExternalId, publishAll } from './src/devices/meter.js';
+import {
+  buildDevice,
+  deviceExternalId,
+  platformId,
+  publishAll,
+  PLATFORM_TYPE,
+} from './src/devices/meter.js';
+import { METER_WIDGET, buildMeterContent, runMeterAction } from './src/widgets.js';
+import { t } from './src/wattwaechter/labels.js';
 
 const gladys = new GladysIntegration();
 
@@ -250,11 +267,50 @@ gladys.onScanRequest(async () => {
 });
 
 // --- Polling -----------------------------------------------------------------
+// Gladys ticks a polled device once a minute at most; the interval the user
+// chose is applied by skipping ticks.
 gladys.onPoll(async (polled) => {
   if (!modbus || !device) return;
   if (polled.external_id !== deviceExternalId(gladys, device)) return;
   if (Date.now() - lastRead < config.poll_frequency * 1000 - 30000) return;
   await refresh();
+});
+
+// --- Widget ------------------------------------------------------------------
+// WITHOUT THESE TWO HANDLERS THE CARD SAYS "not implemented"
+// A widget is not drawn by the integration: Gladys asks for its content and
+// renders the answer itself. When nothing is registered for the widget key,
+// Gladys gets the SDK's default answer to an unhandled message, and the card
+// shows exactly that word. The content builder in src/widgets.js was written
+// first and wired up second, so a real dashboard showed "not implemented" while
+// every value beside it was correct.
+//
+// The key must match the `key` in the manifest's `widgets` field, and the id of
+// a feature is built through the SDK's externalIds() like everywhere else.
+
+/** The external id of the power feature, or null before the first read. */
+function powerFeatureId() {
+  if (!device) return null;
+  return gladys.externalIds(PLATFORM_TYPE, platformId(device)).feature('power');
+}
+
+gladys.onWidgetGet(METER_WIDGET, async (settings = {}) => {
+  // Pick up a fresh reading, so the tile is not a minute stale when it is opened.
+  if (modbus && Date.now() - lastRead > 10000) await refresh().catch(() => {});
+  return buildMeterContent({
+    state,
+    device,
+    powerFeatureId: powerFeatureId(),
+    settings,
+    // The period totals need the REST API, which needs a read token. Without one
+    // the four period buttons are left out rather than shown dead.
+    apiEnabled: Boolean(api),
+    t,
+  });
+});
+
+gladys.onWidgetAction(METER_WIDGET, async (actionKey, params) => {
+  return runMeterAction({ actionKey, params, t });
 });
 
 /**
@@ -300,7 +356,7 @@ gladys.on('connected', async () => {
   try {
     await readConfig();
     if (await connectDevice()) await publishDevice();
-    gladys.requestWidgetRefresh('meter');
+    gladys.requestWidgetRefresh(METER_WIDGET);
   } catch (err) {
     logger.error('Post-connection initialization failed', err.message);
   }
@@ -310,13 +366,13 @@ gladys.onConfigUpdated(async (newConfig) => {
   config = normalizeConfig(newConfig);
   powerSide = 'normal';
   if (await connectDevice()) await publishDevice();
-  gladys.requestWidgetRefresh('meter');
+  gladys.requestWidgetRefresh(METER_WIDGET);
 });
 
 // --- Shutdown ----------------------------------------------------------------
 gladys.handleShutdown(async (signal) => {
   logger.info(`Received ${signal} -> graceful shutdown`);
-  await modbus?.connection?.close().catch(() => {});
+  await modbus?.transport?.close().catch(() => {});
 });
 
 // --- Startup -----------------------------------------------------------------
