@@ -35,8 +35,7 @@
 // `connected` and `onConfigUpdated` both call the connect path, and on a real
 // restart both fire within seconds of each other. The log showed `Meter ready`
 // twice, seven seconds apart, and the device reported two active connections
-// afterwards: the second build sat on the second slot while the first was still
-// being torn down. A build that is already running is therefore remembered in
+// afterwards. A build that is already running is therefore remembered in
 // `connecting`, and a second caller WAITS for it instead of starting its own.
 //
 // WHY A CONNECT CLOSES BEFORE IT OPENS
@@ -44,6 +43,19 @@
 // only frees the slot when the FIN arrives — a few milliseconds later. A new
 // connect landing in that gap finds both slots taken and times out. The connect
 // path therefore uses `close()`, which waits for the socket to report down.
+//
+// WHY THE CONNECT PATH RECOGNISES A CONNECTION THAT IS STILL GOOD
+// Two measured facts, from one morning of logs:
+//   1. after a restart the device reported ONE connection — the gate above had
+//      done its job;
+//   2. pressing "Test the connection" took it to TWO.
+// The test does not connect on its own. It calls `readConfig()`, and that round
+// trip through Gladys gives the SDK the chance to deliver `onConfigUpdated` —
+// which connects. The working connection was then torn down and rebuilt for
+// nothing, and the second build sat on the second slot while the first was still
+// closing.
+// So connecting becomes idempotent: asking the device for its current values is
+// worth doing, throwing away a working connection to do it is not.
 //
 // SDK: @gladysassistant/integration-sdk ^0.15 (Gladys >= 5.1.0).
 // -----------------------------------------------------------------------------
@@ -61,7 +73,7 @@ import {
   PLATFORM_TYPE,
 } from './src/devices/meter.js';
 import { METER_WIDGET, buildMeterContent, runMeterAction } from './src/widgets.js';
-import { t } from './src/wattwaechter/labels.js';
+import { t, KEY } from './src/wattwaechter/labels.js';
 
 const gladys = new GladysIntegration();
 
@@ -132,9 +144,42 @@ async function connectDevice() {
  * register or the endpoint that failed.
  */
 async function establish() {
-  // Hand the previous connection back and WAIT for it to be down. `reset()`
-  // would return sooner, but the slot on the device is only free once the FIN
-  // has arrived — and the connect below would otherwise land in that gap.
+  // KEEP A CONNECTION THAT IS STILL GOOD — see the note at the top of the file.
+  //
+  // `onConfigUpdated` calls this whenever Gladys re-delivers the settings, and
+  // the connection test causes exactly that by reading them. Tearing a working
+  // connection down to build an equivalent one is not a refresh; it is a second
+  // client on a device that allows two, and the pair overlap while the old
+  // socket closes.
+  //
+  // The conditions are deliberately narrow:
+  //   - `isOpen` says there is still a live socket. A connection whose peer has
+  //     gone, or one a failed read has already dropped, is NOT kept — those are
+  //     the cases where a fresh build is genuinely needed, and skipping them
+  //     would leave the integration talking to a dead handle.
+  //   - the host and port must match. A configuration change that moves the
+  //     device to another address has to reconnect; keeping the old socket would
+  //     silently read the wrong meter.
+  const sameTarget = Boolean(
+    modbus && device && device.host === config.host && modbus.port === config.modbus_port,
+  );
+  if (modbus?.transport?.isOpen && sameTarget) {
+    // Re-read the readings, which is the part that was actually wanted, and
+    // leave the socket alone. A failed read here is logged and stepped over
+    // rather than thrown: the connection is fine, one register is not.
+    state = await modbus.readAll().catch((err) => {
+      logger.warn(`Refresh on the existing connection failed: ${err.message}`);
+      return state;
+    });
+    await gladys.setConnectionStatus(true);
+    return true;
+  }
+
+  // Either there is no connection, or the one we hold is no longer usable, or it
+  // points at a different device. Hand it back and WAIT for it to be down:
+  // `destroy()` would return sooner, but the slot on the device is only free
+  // once the FIN has arrived — and the connect below would otherwise land in
+  // that gap.
   if (modbus) {
     await modbus.transport?.close?.().catch(() => {});
     modbus = null;
@@ -341,13 +386,20 @@ gladys.onPoll(async (polled) => {
 // first and wired up second, so a real dashboard showed "not implemented" while
 // every value beside it was correct.
 //
-// The key must match the `key` in the manifest's `widgets` field, and the id of
-// a feature is built through the SDK's externalIds() like everywhere else.
+// The key must match the `key` in the manifest's `widgets` field, and the ids are
+// built through the SDK's externalIds() like everywhere else — never by hand, or
+// the prefix check refuses the whole device.
+//
+// WHY TWO IDS AND NOT ONE
+// The card shows two device-bound tiles: the live power and the meter index.
+// Each needs the external id of its OWN feature, so both are built here and
+// handed to the content builder. Building one and deriving the other by string
+// surgery would break the day a feature key is renamed.
 
-/** The external id of the power feature, or null before the first read. */
-function powerFeatureId() {
+/** The external id of one feature of this device, or null before the first read. */
+function featureId(key) {
   if (!device) return null;
-  return gladys.externalIds(PLATFORM_TYPE, platformId(device)).feature('power');
+  return gladys.externalIds(PLATFORM_TYPE, platformId(device)).feature(key);
 }
 
 gladys.onWidgetGet(METER_WIDGET, async (settings = {}) => {
@@ -356,7 +408,8 @@ gladys.onWidgetGet(METER_WIDGET, async (settings = {}) => {
   return buildMeterContent({
     state,
     device,
-    powerFeatureId: powerFeatureId(),
+    powerFeatureId: featureId(KEY.POWER),
+    indexFeatureId: featureId(KEY.CONSUMPTION),
     settings,
     // The period totals need the REST API, which needs a read token. Without one
     // the four period buttons are left out rather than shown dead.
@@ -376,8 +429,13 @@ gladys.onWidgetAction(METER_WIDGET, async (actionKey, params) => {
  * default and has to be switched on before anything can be read.
  *
  * It reads over the connection this process already owns. A client of its own
- * would be a second connection, and the device takes only two — with the poll's
- * connection sitting next to it, that second one was refused on a real device.
+ * would be a second connection, and the device takes only two.
+ *
+ * WHY IT STILL READS THE CONFIGURATION
+ * That round trip through Gladys is also what delivers settings the user may
+ * have just saved, so it stays — and with it the `onConfigUpdated` it can
+ * trigger. It is no longer harmful: `establish()` keeps an open connection to
+ * the same device instead of rebuilding it, so that costs a read, not a slot.
  */
 gladys.onAction('test_connection', async () => {
   await readConfig().catch(() => {});
@@ -410,7 +468,8 @@ gladys.onAction('test_connection', async () => {
 // --- Connection lifecycle ----------------------------------------------------
 // Both of these connect, and on a restart both fire within seconds. They are
 // safe to call one after the other because connectDevice() lets the second
-// caller wait for the attempt the first one started.
+// caller wait for the attempt the first one started, and establish() keeps a
+// connection that is already open to the same device.
 //
 gladys.on('connected', async () => {
   try {

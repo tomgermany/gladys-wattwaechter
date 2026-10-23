@@ -28,18 +28,29 @@
 // A card takes at most 8 components, and among them at most 4 BUTTONS, 6 value
 // tiles, 2 texts and 1 status list. Anything past a cap is DROPPED, in content
 // order, silently. So the four period buttons are exactly the budget: adding a
-// fifth would simply never appear.
+// fifth would simply never appear. The tiles below plus the status row and the
+// four buttons come to seven of the eight.
 //
 // WHAT THE CARD SHOWS
 //   - the current power as a big value tile, WITH the meter's own sign:
 //     positive is consumption, negative is feed-in. That is what the user asked
 //     for, and it is also what the meter means, so it is not rewritten here.
+//   - the meter index beside it, so the running total is on the same card as the
+//     live value. It is bound to the feature the integration already publishes,
+//     so it follows the readings without a refresh being wired here.
 //   - the device ID as a status row, so the card says which unit it is.
 //   - four buttons for the period totals: today, last 7, last 30, last 365
 //     days. The active one is highlighted.
-//   - the period total as a second value tile, once a button has been pressed.
+//   - the period total as a further value tile, once a button has been pressed.
 //     It is a computed value, not a device feature, so it comes from this file
 //     and carries the date it was read for.
+//
+// WHY ONE TILE IS BOUND TO A FEATURE AND THE OTHER IS NOT
+// A tile with `device_feature` carries the id of a published feature. Gladys
+// reads that feature's own history and value, so the tile stays right by itself
+// and needs nothing from here. A tile with `value` carries a number this file
+// computed — the period total — because no feature holds it. Keeping the
+// distinction explicit is what stops a stale number being shown as a live one.
 //
 // THE PERIOD TOTALS NEED THE REST API
 // Modbus has no notion of "yesterday". Without a read token in the
@@ -71,6 +82,7 @@ export const PERIOD_KEYS = ['day', 'week', 'month', 'year'];
  * @param {object|null} ctx.state last readings
  * @param {object|null} ctx.device { name, serial, model, host }
  * @param {string|null} ctx.powerFeatureId external_id of the power feature
+ * @param {string|null} ctx.indexFeatureId external_id of the meter index feature
  * @param {object} ctx.settings the widget instance settings
  * @param {object|null} ctx.period the last period total read for this widget
  * @param {boolean} ctx.apiEnabled true when a read token is configured
@@ -80,6 +92,7 @@ export function buildMeterContent({
   state,
   device,
   powerFeatureId,
+  indexFeatureId,
   settings = {},
   period = null,
   apiEnabled = false,
@@ -107,7 +120,29 @@ export function buildMeterContent({
     });
   }
 
-  // 2. The period total, when one has been read. A computed value, so it is
+  // 2. The meter index, next to the live value and bound to its own feature.
+  //
+  // WHAT THIS IS, AND WHAT IT IS NOT
+  // The running total the meter has counted up — the figure that appears on the
+  // bill, not the consumption of any one period. It comes from register 40116
+  // (OBIS 1.8.0) through the `consumption` feature, which is why this tile
+  // references that feature rather than carrying a number of its own.
+  //
+  // WHY IT IS ONLY ADDED WHEN THE FEATURE EXISTS
+  // A meter that does not report the counter gets no feature, and a tile
+  // pointing at an id nobody publishes would render as an empty box. The check
+  // is the same rule the device builder follows.
+  if (indexFeatureId) {
+    components.push({
+      type: 'value',
+      label: t('index'),
+      icon: 'activity',
+      device_feature: indexFeatureId,
+      color: 'neutral',
+    });
+  }
+
+  // 3. The period total, when one has been read. A computed value, so it is
   //    sent as a plain number with its unit and the day it belongs to.
   if (period) {
     components.push({
@@ -120,7 +155,7 @@ export function buildMeterContent({
     });
   }
 
-  // 3. Which device this is — the device ID, NOT the utility meter number.
+  // 4. Which device this is — the device ID, NOT the utility meter number.
   //    The SunSpec Common Block's SN field (40052-40067) holds the MAC address,
   //    twelve hex characters, and the manufacturer's own register table says so.
   //    The electricity meter number (the Zählpunktbezeichnung, something like
@@ -142,7 +177,7 @@ export function buildMeterContent({
     ],
   });
 
-  // 4. The four period buttons, exactly the budget of the card. Only when the
+  // 5. The four period buttons, exactly the budget of the card. Only when the
   //    REST API is usable, see the note at the top.
   if (apiEnabled) {
     for (const key of PERIOD_KEYS) {
