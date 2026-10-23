@@ -25,6 +25,19 @@
 // firmware, MAC and device address, and the REST API's endpoint list has no
 // meter field. The label therefore says what the value really is. Calling it a
 // meter number was a mistake, and it showed a MAC address under a false name.
+//
+// index IS THE RUNNING TOTAL, NOT A PERIOD
+// `index` labels the meter's cumulative counter — register 40116, OBIS 1.8.0,
+// the figure that also appears on the bill. It sits next to `power` on the card
+// and is deliberately not called "consumption": the four period buttons below it
+// are also consumption, of a bounded stretch of time, and two labels that read
+// the same would leave the user guessing which number is which.
+//
+// WHY THE KEYS ARE ADDED TO EVERY LANGUAGE AT ONCE
+// `t()` falls back to the key itself when a translation is missing, so a text
+// added in German only would show the literal word "index" to an English user.
+// That happened here once: the widget asked for `index` before this entry
+// existed, and the card would have shown the bare key.
 // -----------------------------------------------------------------------------
 
 /** Feature keys, kept in one place so no file invents its own spelling. */
@@ -38,6 +51,7 @@ const TEXT = {
   de: {
     notConnected: 'Kein Zugriff auf den WattWächter. Adresse in der Konfiguration prüfen.',
     power: 'Leistung',
+    index: 'Zählerstand',
     meterNumber: 'Geräte-ID',
     period_day: 'Heute',
     period_week: '7 Tage',
@@ -51,6 +65,7 @@ const TEXT = {
   en: {
     notConnected: 'No access to the WattWächter. Check the address in the configuration.',
     power: 'Power',
+    index: 'Meter reading',
     meterNumber: 'Device ID',
     period_day: 'Today',
     period_week: '7 days',
@@ -64,6 +79,7 @@ const TEXT = {
   fr: {
     notConnected: 'Pas d’accès au WattWächter. Vérifiez l’adresse dans la configuration.',
     power: 'Puissance',
+    index: 'Relevé du compteur',
     meterNumber: 'ID de l’appareil',
     period_day: "Aujourd'hui",
     period_week: '7 jours',
@@ -77,6 +93,7 @@ const TEXT = {
   es: {
     notConnected: 'Sin acceso al WattWächter. Comprueba la dirección en la configuración.',
     power: 'Potencia',
+    index: 'Lectura del contador',
     meterNumber: 'ID del aparato',
     period_day: 'Hoy',
     period_week: '7 días',
@@ -96,7 +113,9 @@ export const LANGUAGE = 'de';
  * Look a text up.
  *
  * An unknown key returns the key itself rather than throwing: a missing word
- * should never be the reason a dashboard stays empty.
+ * should never be the reason a dashboard stays empty. That fallback is also why
+ * a new key belongs in all four languages at once — otherwise the key itself is
+ * what the user reads.
  */
 export function t(key, language = LANGUAGE) {
   return TEXT[language]?.[key] ?? TEXT[LANGUAGE][key] ?? key;
