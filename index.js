@@ -29,21 +29,21 @@
 // The WattWächter's Modbus server accepts at most TWO clients at a time and
 // keeps an idle connection for five minutes. One connection therefore belongs to
 // this process, and every read — poll, scan and the connection test alike — runs
-// on it. An earlier version let the connection test build its own client next to
-// the running one; on a real device that third client was refused and the test
-// timed out after five seconds.
+// on it.
 //
-// A SECOND TRAP, AND WHY THERE IS ONE RETRY
-// Recreating the container leaves the old connection alive on the device side
-// until its idle timeout expires. The first attempt after a restart can hit that
-// occupied slot. One deliberate retry on a fresh socket rides it out; more would
-// only hammer the device.
+// WHY A CONNECT IS NEVER STARTED TWICE
+// `connected` and `onConfigUpdated` both call the connect path, and on a real
+// restart both fire within seconds of each other. The log showed `Meter ready`
+// twice, seven seconds apart, and the device reported two active connections
+// afterwards: the second build sat on the second slot while the first was still
+// being torn down. A build that is already running is therefore remembered in
+// `connecting`, and a second caller WAITS for it instead of starting its own.
 //
-// WHEN A RETRY FAILS TOO, THE ORIGINAL ERROR IS CARRIED ALONG
-// `withConnection` throws its own "no connection" error when the second attempt
-// also fails. That message on its own says nothing about why the first attempt
-// failed, which is the part worth reading. The original error is therefore
-// attached as `cause`, so the log keeps both: what was tried, and why it broke.
+// WHY A CONNECT CLOSES BEFORE IT OPENS
+// Giving the old socket back with `destroy()` returns at once, and the device
+// only frees the slot when the FIN arrives — a few milliseconds later. A new
+// connect landing in that gap finds both slots taken and times out. The connect
+// path therefore uses `close()`, which waits for the socket to report down.
 //
 // SDK: @gladysassistant/integration-sdk ^0.15 (Gladys >= 5.1.0).
 // -----------------------------------------------------------------------------
@@ -74,6 +74,14 @@ let device = null; // { host, serial, model, name }: the identity of the meter
 let lastRead = 0; // when the readings were taken, to honour poll_frequency
 let powerSide = 'normal'; // 'normal' | 'over' | 'under', see firePowerEvents()
 
+/**
+ * The connect attempt running right now, or null.
+ *
+ * See the note at the top of this file: it exists so that the two handlers which
+ * both connect on a restart do not each open their own connection.
+ */
+let connecting = null;
+
 // A meter sitting on its limit must not flap: the value has to come back this
 // far before a new crossing is reported.
 const HYSTERESIS = 200; // watts
@@ -92,17 +100,45 @@ async function readConfig() {
 }
 
 /**
- * Connect to the device, read it once, and keep what it answered.
+ * Connect to the device, once at a time.
+ *
+ * THE GATE, AND WHY IT IS NOT IN `establish()`
+ * A second caller while a build is running must not start a competing one — that
+ * is the whole point. So the check and the promise live here, and only one
+ * caller ever reaches `establish()`.
+ *
+ * `finally` clears the gate rather than a plain assignment after the await: if
+ * the attempt throws, a gate left set would make every later caller wait on a
+ * promise that has already settled, and the integration would never connect
+ * again.
+ */
+async function connectDevice() {
+  if (connecting) return connecting;
+
+  connecting = establish();
+  try {
+    return await connecting;
+  } finally {
+    connecting = null;
+  }
+}
+
+/**
+ * Do the actual connect: give the old connection back, open a new one, read the
+ * device once and keep what it answered.
  *
  * Resolves true on success. On failure the connection status carries the reason,
  * which is the text shown in the Configuration screen, and the log names the
  * register or the endpoint that failed.
  */
-async function connectDevice() {
-  // Start from a clean slate: a failed attempt must never leave the previous
-  // connection behind, or the next read would talk to a stale socket.
-  modbus?.transport?.reset();
-  modbus = null;
+async function establish() {
+  // Hand the previous connection back and WAIT for it to be down. `reset()`
+  // would return sooner, but the slot on the device is only free once the FIN
+  // has arrived — and the connect below would otherwise land in that gap.
+  if (modbus) {
+    await modbus.transport?.close?.().catch(() => {});
+    modbus = null;
+  }
   api = null;
   state = null;
   device = null;
@@ -144,6 +180,7 @@ async function connectDevice() {
     // attempt. A real log showed a read succeeding and then the very next
     // request timing out, which is that stranded connection.
     modbus?.transport?.reset();
+    modbus = null;
     logger.error(`WattWächter connection failed (${config.host}): ${err.message}`);
     await gladys
       .setConnectionStatus(false, {
@@ -198,8 +235,8 @@ async function refresh() {
  * Gladys runs the integration in a container and that container is recreated,
  * the old connection survives on the device side until its idle timeout. The
  * first attempt after a restart can then hit a slot that is still occupied. One
- * deliberate retry on a fresh socket rides that out; anything beyond one retry
- * would just hammer the device.
+ * deliberate retry on a fresh connection rides that out; anything beyond one
+ * retry would just hammer the device.
  *
  * WHY THE ORIGINAL ERROR IS CARRIED ALONG
  * When the retry fails as well, the error thrown here would otherwise say only
@@ -217,7 +254,8 @@ async function withConnection(task) {
     return await task(modbus);
   } catch (err) {
     // The attempt may have run into the connection the device still holds open
-    // from before. Drop ours and try once more from a clean socket.
+    // from before. Drop ours and try once more from a fresh one — connectDevice
+    // closes the old socket and waits, so the two slots are not both taken.
     logger.warn(`Read failed (${err.message}) -> one retry on a fresh connection`);
     modbus?.transport?.reset();
     modbus = null;
@@ -370,6 +408,10 @@ gladys.onAction('test_connection', async () => {
 });
 
 // --- Connection lifecycle ----------------------------------------------------
+// Both of these connect, and on a restart both fire within seconds. They are
+// safe to call one after the other because connectDevice() lets the second
+// caller wait for the attempt the first one started.
+//
 gladys.on('connected', async () => {
   try {
     await readConfig();
@@ -391,6 +433,7 @@ gladys.onConfigUpdated(async (newConfig) => {
 gladys.handleShutdown(async (signal) => {
   logger.info(`Received ${signal} -> graceful shutdown`);
   await modbus?.transport?.close().catch(() => {});
+  modbus = null;
 });
 
 // --- Startup -----------------------------------------------------------------
