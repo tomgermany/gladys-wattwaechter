@@ -2,15 +2,35 @@ name: Build
 
 # Multi-architecture build of the integration image.
 #
-# Two ways in: a version tag pushed by hand, or the Release workflow calling
-# this one once it has bumped the version and created the tag. Both end with the
-# same two tags on ghcr.io, `:X.Y.Z` and `:latest`.
+# THREE WAYS IN
+#   workflow_dispatch  a manual run: builds the image for the branch you pick and
+#                      tags it with that branch name, so it can be installed for
+#                      testing without touching any published version.
+#   push: tags         a version tag: builds the released image.
+#   workflow_call      the Release workflow calls this once it has bumped the
+#                      version and created the tag.
 #
-# The `latest` tag is only moved for a real version tag, never for a branch
-# build: a `latest` pointing at an unreleased commit would be offered to every
-# Gladys user as an update.
+# NO `latest` TAG, ON PURPOSE
+# Every build here produces exactly the tag it was asked for and nothing else.
+# A `latest` that moved on its own would be offered to every Gladys user as an
+# update the moment it was pushed, which is not something a branch build should
+# ever be able to do. Gladys reads the tag named in the manifest's
+# `docker_image`, so a test image is reached by naming it — nothing else picks it
+# up.
+#
+# THE MANUAL TAG
+# It defaults to the branch name, so `fix-netz` produces
+# `ghcr.io/<owner>/<repo>:fix-netz`. Characters a tag cannot carry are folded to
+# `-`; branch names with slashes are common and would otherwise produce an
+# invalid reference.
 
 on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Image tag to build (defaults to the branch name)
+        required: false
+        type: string
   push:
     tags: ['v*.*.*']
   workflow_call:
@@ -30,14 +50,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Work out the version
-        id: version
+      # One step decides the tag, so the build below has a single value to use
+      # and the log states which one it picked.
+      - name: Work out the image tag
+        id: tag
         run: |
           if [ -n "${{ inputs.version }}" ]; then
-            echo "value=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+            # Called by the Release workflow: the version it just created.
+            tag="${{ inputs.version }}"
+          elif [ -n "${{ inputs.tag }}" ]; then
+            # Manual run with a tag typed in.
+            tag="${{ inputs.tag }}"
+          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            # A version tag was pushed: v1.2.3 -> 1.2.3
+            tag="${GITHUB_REF_NAME#v}"
           else
-            echo "value=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+            # Manual run with the field left empty: the branch name.
+            tag="${GITHUB_REF_NAME}"
           fi
+          # An image tag may hold letters, digits, dots, dashes and underscores.
+          # A branch name may hold more, so anything else becomes a dash.
+          tag="$(printf '%s' "$tag" | tr -c 'A-Za-z0-9._-' '-')"
+          echo "value=$tag" >> "$GITHUB_OUTPUT"
+          echo "Building image tag: $tag"
 
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
@@ -53,6 +88,5 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.value }}
-            ghcr.io/${{ github.repository }}:latest
+          # One tag, always. No `latest`, see the note at the top.
+          tags: ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.value }}
