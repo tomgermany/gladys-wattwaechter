@@ -16,10 +16,20 @@
 // HOW MANY CONNECTIONS A DEVICE WILL TAKE
 // The WattWächter allows at most TWO Modbus clients at a time. Keeping one open
 // for the poll is fine; leaving extra ones behind is not, because they eat the
-// two slots. The connection test in the Configuration screen opens its own, so
-// everything outside the poll loop calls `reset()` when it is done. The log from
-// a real device is what taught this: one read succeeded, and the very next
-// request for the same register timed out.
+// two slots.
+//
+// TWO WAYS TO GIVE A CONNECTION BACK, AND WHICH ONE TO USE
+//   reset()  destroys the socket and returns AT ONCE. The handle is gone on our
+//            side, but the device learns about it a moment later, when the FIN
+//            arrives — so for a few milliseconds it still counts the slot as
+//            taken. Fine for a recovery path that is about to open a new one
+//            anyway; not fine when the next thing is another connect, because
+//            that connect can land in the gap and be refused.
+//   close()  ends the socket and WAITS for it to report 'close'. By then the
+//            handle is really down, and the device has had the FIN. Use this
+//            before opening a replacement.
+// A real log is what separates them: `Meter ready` appeared twice, seven seconds
+// apart, and the device reported two active connections afterwards.
 //
 // THE AWKWARD PART: KNOWING WHEN THE ANSWER ENDS
 // A TCP stream has no message boundaries, so a single read may return half a
@@ -151,10 +161,13 @@ export class ModbusSocket {
    * The WattWächter allows at most two Modbus clients at a time. A connection
    * left open after a read is not free: it eats one of those two slots, and the
    * connection test in the Configuration screen — which opens its own — is then
-   * refused or times out. The log from a real device showed exactly that: one
-   * successful read, then `No answer within 5000 ms` for the very same register.
-   * Everything that talks to the device outside the poll loop gives its
-   * connection back when it is done.
+   * refused or times out.
+   *
+   * WHAT IT DOES NOT DO
+   * It does not wait. `destroy()` returns immediately, and the device only frees
+   * the slot once the FIN reaches it. Use `close()` when a new connection is
+   * about to be opened; this one is for recovery paths where waiting would not
+   * help anyway.
    */
   reset() {
     const socket = this.socket;
@@ -173,15 +186,45 @@ export class ModbusSocket {
     pending.reject(err instanceof TransportError ? err : new TransportError(err.message));
   }
 
-  /** Close cleanly. Called on shutdown, and by the tests. */
+  /**
+   * Close cleanly and WAIT for the handle to be down. Called before opening a
+   * replacement, and on shutdown.
+   *
+   * WHY IT CANNOT SIMPLY AWAIT THE 'close' EVENT
+   * A socket that is already destroyed — one that hit an error, or one `reset()`
+   * has just thrown away — never fires 'close' again. Waiting on that event would
+   * leave the promise pending forever, and the caller with it. So three cases are
+   * separated:
+   *   - nothing to close    -> return
+   *   - already destroyed   -> return, the handle is down by definition
+   *   - still open          -> end() and wait, with a short ceiling in case the
+   *                           event never comes
+   * The ceiling is a backstop, not the normal path: a healthy socket reports
+   * 'close' within milliseconds.
+   */
   async close() {
     const socket = this.socket;
     this.socket = null;
     this.pending = null;
     this.buffered = Buffer.alloc(0);
+
     if (!socket) return;
+    // Already down: `reset()`, an error, or the other end hung up. Nothing to
+    // signal, and no event will arrive.
+    if (socket.destroyed) return;
+
     await new Promise((resolve) => {
-      socket.once('close', resolve);
+      // Settled once, whichever comes first. `settle` guards against resolving
+      // twice when both the event and the timer fire.
+      let settled = false;
+      const settle = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(ceiling);
+        resolve();
+      };
+      const ceiling = setTimeout(settle, 1000);
+      socket.once('close', settle);
       socket.end();
     });
   }
