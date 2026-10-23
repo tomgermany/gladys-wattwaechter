@@ -73,7 +73,7 @@ import {
   PLATFORM_TYPE,
 } from './src/devices/meter.js';
 import { METER_WIDGET, buildMeterContent, runMeterAction } from './src/widgets.js';
-import { t } from './src/wattwaechter/labels.js';
+import { t, KEY } from './src/wattwaechter/labels.js';
 
 const gladys = new GladysIntegration();
 
@@ -386,13 +386,20 @@ gladys.onPoll(async (polled) => {
 // first and wired up second, so a real dashboard showed "not implemented" while
 // every value beside it was correct.
 //
-// The key must match the `key` in the manifest's `widgets` field, and the id of
-// a feature is built through the SDK's externalIds() like everywhere else.
+// The key must match the `key` in the manifest's `widgets` field, and the ids are
+// built through the SDK's externalIds() like everywhere else — never by hand, or
+// the prefix check refuses the whole device.
+//
+// WHY TWO IDS AND NOT ONE
+// The card shows two device-bound tiles: the live power and the meter index.
+// Each needs the external id of its OWN feature, so both are built here and
+// handed to the content builder. Building one and deriving the other by string
+// surgery would break the day a feature key is renamed.
 
-/** The external id of the power feature, or null before the first read. */
-function powerFeatureId() {
+/** The external id of one feature of this device, or null before the first read. */
+function featureId(key) {
   if (!device) return null;
-  return gladys.externalIds(PLATFORM_TYPE, platformId(device)).feature('power');
+  return gladys.externalIds(PLATFORM_TYPE, platformId(device)).feature(key);
 }
 
 gladys.onWidgetGet(METER_WIDGET, async (settings = {}) => {
@@ -401,7 +408,8 @@ gladys.onWidgetGet(METER_WIDGET, async (settings = {}) => {
   return buildMeterContent({
     state,
     device,
-    powerFeatureId: powerFeatureId(),
+    powerFeatureId: featureId(KEY.POWER),
+    indexFeatureId: featureId(KEY.CONSUMPTION),
     settings,
     // The period totals need the REST API, which needs a read token. Without one
     // the four period buttons are left out rather than shown dead.
