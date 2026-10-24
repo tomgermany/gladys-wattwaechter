@@ -2,6 +2,7 @@
   "manifest_version": 1,
   "type": "device",
   "name": "WattWächter Plus",
+  "cover_image": "https://raw.githubusercontent.com/tomgermany/gladys-wattwaechter/main/cover.png",
   "description": {
     "de": "Liest den WattWächter Plus und zeigt Leistung, Netzbezug und Einspeisung.",
     "en": "Reads the WattWächter Plus and shows power, consumption and feed-in.",
