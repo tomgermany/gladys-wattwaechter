@@ -5,8 +5,6 @@ through a **WattWächter Plus**. Everything stays on your local network: no clou
 
 ## Requirement: switch Modbus on
 
-**Wattwächter der Fa. Wattwächter, angebracht an den Zähler bei ihnen:[wattwächter] (https://www.wattwaechter.com/)/)** 
-
 **The Modbus server is switched OFF by default in the WattWächter and has to be enabled first.**
 Without that step the device does not answer on port 502 and the integration can read nothing.
 
