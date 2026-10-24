@@ -26,8 +26,11 @@ test('the manifest and the package agree on the version', () => {
   assert.equal(manifest.version, pkg.version);
 });
 
-test('the manifest defines a direct HTTPS catalog cover image', () => {
-  assert.match(manifest.cover_image, /^https:\/\/raw\\.githubusercontent\\.com\\/tomgermany\\/gladys-wattwaechter\\/main\\/cover\\.png$/);
+test('the manifest defines the catalog cover image', () => {
+  assert.equal(
+    manifest.cover_image,
+    'https://raw.githubusercontent.com/tomgermany/gladys-wattwaechter/main/cover.png',
+  );
 });
 
 test('the image is tagged, on a registry, with a non-empty tag', () => {
