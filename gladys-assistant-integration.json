@@ -9,8 +9,8 @@
     "fr": "Lit le WattWächter Plus et affiche la puissance, la consommation et l'injection.",
     "es": "Lee el WattWächter Plus y muestra potencia, consumo y vertido en Gladys Assistant."
   },
-  "version": "1.3.3",
-  "docker_image": "ghcr.io/tomgermany/gladys-wattwaechter:1.3.3",
+  "version": "1.3.4",
+  "docker_image": "ghcr.io/tomgermany/gladys-wattwaechter:1.3.4",
   "gladys_version": ">=5.1.0",
   "categories": [
     "energy"
@@ -234,20 +234,42 @@
           ]
         },
         {
-          "key": "show_period_buttons",
+          "key": "show_power",
           "type": "boolean",
-          "label": {
-            "de": "Zeitraum-Schaltflächen anzeigen",
-            "en": "Show period buttons",
-            "fr": "Afficher les boutons de période",
-            "es": "Mostrar botones de periodo"
-          },
-          "description": {
-            "de": "Blendet die Schaltflächen für Heute, 7, 30 und 365 Tage ein oder aus.",
-            "en": "Show or hide the buttons for today, 7, 30 and 365 days.",
-            "fr": "Affiche ou masque les boutons pour aujourd’hui, 7, 30 et 365 jours.",
-            "es": "Muestra u oculta los botones de hoy, 7, 30 y 365 días."
-          },
+          "label": { "de": "Leistungskachel anzeigen", "en": "Show power tile", "fr": "Show power tile", "es": "Show power tile" },
+          "description": { "de": "Blendet diese Kachel im Widget ein oder aus.", "en": "Show or hide this tile in the widget.", "fr": "Afficher ou masquer cette tuile.", "es": "Mostrar u ocultar esta tarjeta." },
+          "required": false,
+          "default": true
+        },
+        {
+          "key": "show_index",
+          "type": "boolean",
+          "label": { "de": "Zählerstand anzeigen", "en": "Show meter index tile", "fr": "Show meter index tile", "es": "Show meter index tile" },
+          "description": { "de": "Blendet diese Kachel im Widget ein oder aus.", "en": "Show or hide this tile in the widget.", "fr": "Afficher ou masquer cette tuile.", "es": "Mostrar u ocultar esta tarjeta." },
+          "required": false,
+          "default": true
+        },
+        {
+          "key": "show_day",
+          "type": "boolean",
+          "label": { "de": "Kachel Heute anzeigen", "en": "Show today tile", "fr": "Show today tile", "es": "Show today tile" },
+          "description": { "de": "Blendet diese Kachel im Widget ein oder aus.", "en": "Show or hide this tile in the widget.", "fr": "Afficher ou masquer cette tuile.", "es": "Mostrar u ocultar esta tarjeta." },
+          "required": false,
+          "default": true
+        },
+        {
+          "key": "show_month",
+          "type": "boolean",
+          "label": { "de": "Kachel Monat anzeigen", "en": "Show month tile", "fr": "Show month tile", "es": "Show month tile" },
+          "description": { "de": "Blendet diese Kachel im Widget ein oder aus.", "en": "Show or hide this tile in the widget.", "fr": "Afficher ou masquer cette tuile.", "es": "Mostrar u ocultar esta tarjeta." },
+          "required": false,
+          "default": true
+        },
+        {
+          "key": "show_year",
+          "type": "boolean",
+          "label": { "de": "Kachel Jahr anzeigen", "en": "Show year tile", "fr": "Show year tile", "es": "Show year tile" },
+          "description": { "de": "Blendet diese Kachel im Widget ein oder aus.", "en": "Show or hide this tile in the widget.", "fr": "Afficher ou masquer cette tuile.", "es": "Mostrar u ocultar esta tarjeta." },
           "required": false,
           "default": true
         },
