@@ -10,7 +10,7 @@
     "es": "Lee el WattWächter Plus y muestra potencia, consumo y vertido en Gladys Assistant."
   },
   "version": "1.3.4",
-  "docker_image": "ghcr.io/tomgermany/gladys-wattwaechter:1.3.4",
+  "docker_image": "ghcr.io/tomgermany/gladys-wattwaechter:widget-configurable-tiles",
   "gladys_version": ">=5.1.0",
   "categories": [
     "energy"
@@ -169,10 +169,10 @@
         "es": "Contador eléctrico"
       },
       "description": {
-        "de": "Leistung, Zählerstand und automatisch aktualisierte Tages-, Monats- und Jahreswerte. Kacheln einzeln konfigurierbar.",
-        "en": "Power, meter index and automatically refreshed daily, monthly and yearly totals. Tiles can be configured individually.",
-        "fr": "Puissance, index du compteur et totaux journaliers, mensuels et annuels actualisés automatiquement. Tuiles configurables individuellement.",
-        "es": "Potencia, lectura del contador y totales diarios, mensuales y anuales actualizados automáticamente. Tarjetas configurables individualmente."
+        "de": "Leistung, Zählerstand sowie Tages-, Monats- und Jahreswerte.",
+        "en": "Power, meter index, and daily, monthly and yearly totals.",
+        "fr": "Puissance, index du compteur et totaux par période.",
+        "es": "Potencia, lectura del contador y totales por periodo."
       },
       "icon": "zap",
       "action_timeout_seconds": 15,
@@ -236,40 +236,90 @@
         {
           "key": "show_power",
           "type": "boolean",
-          "label": { "de": "Leistungskachel anzeigen", "en": "Show power tile", "fr": "Show power tile", "es": "Show power tile" },
-          "description": { "de": "Blendet diese Kachel im Widget ein oder aus.", "en": "Show or hide this tile in the widget.", "fr": "Afficher ou masquer cette tuile.", "es": "Mostrar u ocultar esta tarjeta." },
+          "label": {
+            "de": "Leistungskachel anzeigen",
+            "en": "Show power tile",
+            "fr": "Show power tile",
+            "es": "Show power tile"
+          },
+          "description": {
+            "de": "Blendet diese Kachel im Widget ein oder aus.",
+            "en": "Show or hide this tile in the widget.",
+            "fr": "Afficher ou masquer cette tuile.",
+            "es": "Mostrar u ocultar esta tarjeta."
+          },
           "required": false,
           "default": true
         },
         {
           "key": "show_index",
           "type": "boolean",
-          "label": { "de": "Zählerstand anzeigen", "en": "Show meter index tile", "fr": "Show meter index tile", "es": "Show meter index tile" },
-          "description": { "de": "Blendet diese Kachel im Widget ein oder aus.", "en": "Show or hide this tile in the widget.", "fr": "Afficher ou masquer cette tuile.", "es": "Mostrar u ocultar esta tarjeta." },
+          "label": {
+            "de": "Zählerstand anzeigen",
+            "en": "Show meter index tile",
+            "fr": "Show meter index tile",
+            "es": "Show meter index tile"
+          },
+          "description": {
+            "de": "Blendet diese Kachel im Widget ein oder aus.",
+            "en": "Show or hide this tile in the widget.",
+            "fr": "Afficher ou masquer cette tuile.",
+            "es": "Mostrar u ocultar esta tarjeta."
+          },
           "required": false,
           "default": true
         },
         {
           "key": "show_day",
           "type": "boolean",
-          "label": { "de": "Kachel Heute anzeigen", "en": "Show today tile", "fr": "Show today tile", "es": "Show today tile" },
-          "description": { "de": "Blendet diese Kachel im Widget ein oder aus.", "en": "Show or hide this tile in the widget.", "fr": "Afficher ou masquer cette tuile.", "es": "Mostrar u ocultar esta tarjeta." },
+          "label": {
+            "de": "Kachel Heute anzeigen",
+            "en": "Show today tile",
+            "fr": "Show today tile",
+            "es": "Show today tile"
+          },
+          "description": {
+            "de": "Blendet diese Kachel im Widget ein oder aus.",
+            "en": "Show or hide this tile in the widget.",
+            "fr": "Afficher ou masquer cette tuile.",
+            "es": "Mostrar u ocultar esta tarjeta."
+          },
           "required": false,
           "default": true
         },
         {
           "key": "show_month",
           "type": "boolean",
-          "label": { "de": "Kachel Monat anzeigen", "en": "Show month tile", "fr": "Show month tile", "es": "Show month tile" },
-          "description": { "de": "Blendet diese Kachel im Widget ein oder aus.", "en": "Show or hide this tile in the widget.", "fr": "Afficher ou masquer cette tuile.", "es": "Mostrar u ocultar esta tarjeta." },
+          "label": {
+            "de": "Kachel Monat anzeigen",
+            "en": "Show month tile",
+            "fr": "Show month tile",
+            "es": "Show month tile"
+          },
+          "description": {
+            "de": "Blendet diese Kachel im Widget ein oder aus.",
+            "en": "Show or hide this tile in the widget.",
+            "fr": "Afficher ou masquer cette tuile.",
+            "es": "Mostrar u ocultar esta tarjeta."
+          },
           "required": false,
           "default": true
         },
         {
           "key": "show_year",
           "type": "boolean",
-          "label": { "de": "Kachel Jahr anzeigen", "en": "Show year tile", "fr": "Show year tile", "es": "Show year tile" },
-          "description": { "de": "Blendet diese Kachel im Widget ein oder aus.", "en": "Show or hide this tile in the widget.", "fr": "Afficher ou masquer cette tuile.", "es": "Mostrar u ocultar esta tarjeta." },
+          "label": {
+            "de": "Kachel Jahr anzeigen",
+            "en": "Show year tile",
+            "fr": "Show year tile",
+            "es": "Show year tile"
+          },
+          "description": {
+            "de": "Blendet diese Kachel im Widget ein oder aus.",
+            "en": "Show or hide this tile in the widget.",
+            "fr": "Afficher ou masquer cette tuile.",
+            "es": "Mostrar u ocultar esta tarjeta."
+          },
           "required": false,
           "default": true
         },
