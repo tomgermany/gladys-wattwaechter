@@ -42,7 +42,7 @@ export const ACTION = {
 };
 
 /** The four periods, in the order they appear on the card. */
-export const PERIOD_KEYS = ['day', 'week', 'month', 'year'];
+export const PERIOD_KEYS = ['day', 'month', 'year'];
 
 /**
  * @param {object} ctx
@@ -118,7 +118,7 @@ export function buildMeterContent({
         type: 'value',
         label: t(`period_${key}`),
         icon: 'bar-chart-2',
-        value: result?.consumption ?? '–',
+        value: result?.consumption == null ? '–' : (settings.unit === 'Wh' ? result.consumption * 1000 : result.consumption),
         unit: settings.unit === 'Wh' ? 'Wh' : 'kWh',
         color: 'info',
       });
@@ -151,3 +151,11 @@ export function buildMeterContent({
   return { ttl_seconds: 60, components };
 }
 
+
+/** Preserve the widget action contract for existing dashboards. */
+export async function runMeterAction({ actionKey, params, t = (key) => key }) {
+  if (actionKey !== ACTION.PERIOD) throw new Error(`Unknown widget action: ${actionKey}`);
+  const period = String(params?.period ?? '');
+  if (!PERIOD_KEYS.includes(period)) throw new Error(`Unknown period: ${period}`);
+  return t(`reading_${period}`);
+}
