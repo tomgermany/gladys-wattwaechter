@@ -138,11 +138,15 @@ export class WattwaechterApi {
     if (spec.source === 'highRes') {
       const answer = await this.get('history/highRes', { date: isoDate(now) });
       const items = Array.isArray(answer?.items) ? answer.items : [];
-      const last = items.at(-1) ?? {};
+      const sum = (key) => {
+        const values = items.map((item) => item?.[key]).filter((value) => typeof value === 'number');
+        if (values.length === 0) return answer?.[key.replace('_kWh', '_total_kWh')] ?? null;
+        return values.reduce((total, value) => total + value, 0);
+      };
       return {
         period,
-        consumption: last.import_kWh ?? answer?.import_total_kWh ?? null,
-        feed_in: last.export_kWh ?? answer?.export_total_kWh ?? null,
+        consumption: sum('import_kWh'),
+        feed_in: sum('export_kWh'),
       };
     }
 
