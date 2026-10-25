@@ -50,7 +50,7 @@ export class ApiError extends Error {}
 const snippet = (text) => String(text).replace(/\s+/g, ' ').trim().slice(0, 120);
 
 /** The periods the widget and the scene action offer, and what they ask for. */
-export const PERIODS = { day: { period: 'day' }, week: { period: 'week' }, month: { period: 'month' }, year: { period: 'year' } };
+export const PERIODS = { day: { period: 'today' }, week: { period: 'week' }, month: { period: 'month' } };
 
 /** `YYYY-MM-DD` for a date, which is the notation the API expects. */
 export function isoDate(date) {
