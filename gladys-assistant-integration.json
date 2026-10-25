@@ -169,10 +169,10 @@
         "es": "Contador eléctrico"
       },
       "description": {
-        "de": "Leistung, Zählerstand sowie Tages-, Monats- und Jahreswerte.",
-        "en": "Power, meter index, and daily, monthly and yearly totals.",
-        "fr": "Puissance, index du compteur et totaux par période.",
-        "es": "Potencia, lectura del contador y totales por periodo."
+        "de": "Leistung, Zählerstand sowie Tages- und Monatswerte.",
+        "en": "Power, meter index, and daily and monthly totals.",
+        "fr": "Puissance, index du compteur et totaux journaliers et mensuels.",
+        "es": "Potencia, lectura del contador y totales diarios y mensuales."
       },
       "icon": "zap",
       "action_timeout_seconds": 15,
