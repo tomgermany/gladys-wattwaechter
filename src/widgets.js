@@ -42,7 +42,7 @@ export const ACTION = {
 };
 
 /** The four periods, in the order they appear on the card. */
-export const PERIOD_KEYS = ['day', 'month', 'year'];
+export const PERIOD_KEYS = ['day', 'month'];
 
 /**
  * @param {object} ctx
