@@ -52,7 +52,7 @@ therefore has no L3, rather than a zero that would be wrong.
 
 - **The power** as a big tile, carrying the meter's own sign. On feed-in the tile turns green.
 - **The meter number**, so it is clear which meter this is.
-- **Four buttons:** today, 7 days, 30 days, 365 days. The selected period is highlighted and its
+- **Four buttons:** today, 7 days, 30 days, 365 days. They can be hidden in the widget settings. The selected period is highlighted and its
   consumption appears below, in kWh.
 
 In the tile's settings you can also choose which meter feeds it and whether the period totals appear
