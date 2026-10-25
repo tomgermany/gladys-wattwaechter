@@ -50,12 +50,7 @@ export class ApiError extends Error {}
 const snippet = (text) => String(text).replace(/\s+/g, ' ').trim().slice(0, 120);
 
 /** The periods the widget and the scene action offer, and what they ask for. */
-export const PERIODS = {
-  day: { source: 'highRes', days: 1 },
-  week: { source: 'lowRes', days: 7 },
-  month: { source: 'lowRes', days: 30 },
-  year: { source: 'lowRes', days: 365 },
-};
+export const PERIODS = { day: { period: 'day' }, week: { period: 'week' }, month: { period: 'month' }, year: { period: 'year' } };
 
 /** `YYYY-MM-DD` for a date, which is the notation the API expects. */
 export function isoDate(date) {
@@ -131,31 +126,13 @@ export class WattwaechterApi {
    * use `lowRes`, whose `import_total_kWh` and `export_total_kWh` are already
    * the sums over the range.
    */
-  async periodTotal(period, now = new Date()) {
-    const spec = PERIODS[period];
-    if (!spec) throw new ApiError(`Unknown period: ${period}`);
-
-    if (spec.source === 'highRes') {
-      const answer = await this.get('history/highRes', { date: isoDate(now) });
-      const items = Array.isArray(answer?.items) ? answer.items : [];
-      const sum = (key) => {
-        const values = items.map((item) => item?.[key]).filter((value) => typeof value === 'number');
-        if (values.length === 0) return answer?.[key.replace('_kWh', '_total_kWh')] ?? null;
-        return values.reduce((total, value) => total + value, 0);
-      };
-      return {
-        period,
-        consumption: sum('import_kWh'),
-        feed_in: sum('export_kWh'),
-      };
-    }
-
-    const start = isoDate(new Date(now.getTime() - (spec.days - 1) * 86400000));
-    const answer = await this.get('history/lowRes', { start, days: spec.days });
+  async periodTotal(period) {
+    if (!PERIODS[period]) throw new ApiError(`Unknown period: ${period}`);
+    const answer = await this.get('costs', { period });
     return {
       period,
-      consumption: answer?.import_total_kWh ?? null,
-      feed_in: answer?.export_total_kWh ?? null,
+      consumption: answer?.consumption_kwh ?? null,
+      feed_in: answer?.feed_in_kwh ?? answer?.production_kwh ?? null,
     };
   }
-}
+}}
