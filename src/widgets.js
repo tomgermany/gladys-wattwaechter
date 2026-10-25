@@ -179,7 +179,7 @@ export function buildMeterContent({
 
   // 5. The four period buttons, exactly the budget of the card. Only when the
   //    REST API is usable, see the note at the top.
-  if (apiEnabled) {
+  if (apiEnabled && settings.show_period_buttons !== false) {
     for (const key of PERIOD_KEYS) {
       components.push({
         type: 'button',
