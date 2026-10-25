@@ -72,7 +72,7 @@ import {
   publishAll,
   PLATFORM_TYPE,
 } from './src/devices/meter.js';
-import { METER_WIDGET, buildMeterContent, runMeterAction } from './src/widgets.js';
+import { METER_WIDGET, PERIOD_KEYS, buildMeterContent, runMeterAction } from './src/widgets.js';
 import { t, KEY } from './src/wattwaechter/labels.js';
 
 const gladys = new GladysIntegration();
