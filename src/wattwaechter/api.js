@@ -128,7 +128,7 @@ export class WattwaechterApi {
    */
   async periodTotal(period) {
     if (!PERIODS[period]) throw new ApiError(`Unknown period: ${period}`);
-    const answer = await this.get('costs', { period });
+    const answer = await this.get('costs', { period: PERIODS[period].period });
     return {
       period,
       consumption: answer?.consumption_kwh ?? null,
