@@ -234,6 +234,24 @@
           ]
         },
         {
+          "key": "show_period_buttons",
+          "type": "boolean",
+          "label": {
+            "de": "Zeitraum-Schaltflächen anzeigen",
+            "en": "Show period buttons",
+            "fr": "Afficher les boutons de période",
+            "es": "Mostrar botones de periodo"
+          },
+          "description": {
+            "de": "Blendet die Schaltflächen für Heute, 7, 30 und 365 Tage ein oder aus.",
+            "en": "Show or hide the buttons for today, 7, 30 and 365 days.",
+            "fr": "Affiche ou masque les boutons pour aujourd’hui, 7, 30 et 365 jours.",
+            "es": "Muestra u oculta los botones de hoy, 7, 30 y 365 días."
+          },
+          "required": false,
+          "default": true
+        },
+        {
           "key": "show_phases",
           "type": "boolean",
           "label": {
