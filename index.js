@@ -72,7 +72,7 @@ import {
   publishAll,
   PLATFORM_TYPE,
 } from './src/devices/meter.js';
-import { METER_WIDGET, buildMeterContent, runMeterAction } from './src/widgets.js';
+import { METER_WIDGET, PERIOD_KEYS, buildMeterContent, runMeterAction } from './src/widgets.js';
 import { t, KEY } from './src/wattwaechter/labels.js';
 
 const gladys = new GladysIntegration();
@@ -213,9 +213,7 @@ async function establish() {
     };
     modbus = connection;
 
-    if (config.read_token) {
-      api = new WattwaechterApi({ host: config.host, token: config.read_token });
-    }
+    api = new WattwaechterApi({ host: config.host, token: config.read_token || '' });
 
     state = await modbus.readAll();
     logger.info(
@@ -409,16 +407,31 @@ function featureId(key) {
 }
 
 gladys.onWidgetGet(METER_WIDGET, async ({ settings = {} } = {}) => {
-  // Pick up a fresh reading, so the tile is not a minute stale when it is opened.
   if (modbus && Date.now() - lastRead > 10000) await refresh().catch(() => {});
+
+  const key = widgetSettingsKey(settings);
+  let periods = periodResults.get(key) ?? {};
+  if (api) {
+    const wanted = PERIOD_KEYS.filter((period) => settings[`show_${period}`] !== false);
+    const results = await Promise.all(wanted.map(async (period) => {
+      try {
+        return [period, await api.periodTotal(period)];
+      } catch (err) {
+        logger.warn(`Widget period read failed (${period}): ${err.message}`);
+        return [period, periods[period] ?? null];
+      }
+    }));
+    periods = { ...periods, ...Object.fromEntries(results.filter(([, value]) => value)) };
+    periodResults.set(key, periods);
+  }
+
   return buildMeterContent({
     state,
     device,
     powerFeatureId: featureId(KEY.POWER),
     indexFeatureId: featureId(KEY.CONSUMPTION),
     settings,
-    period: periodResults.get(widgetSettingsKey(settings)) ?? null,
-    // Period buttons are useful only when the REST API client exists.
+    periods,
     apiEnabled: Boolean(api),
     t,
   });
@@ -428,7 +441,7 @@ gladys.onWidgetAction(METER_WIDGET, async (actionKey, params, { settings = {} } 
   if (!api) throw new Error('Die REST-API ist nicht verfügbar. Bitte Lesetoken und Verbindung prüfen.');
   try {
     const period = await api.periodTotal(String(params?.period ?? ''));
-    periodResults.set(widgetSettingsKey(settings), period);
+    periodResults.set(widgetSettingsKey(settings), { ...(periodResults.get(widgetSettingsKey(settings)) ?? {}), [period.period]: period });
     gladys.requestWidgetRefresh(METER_WIDGET);
     return runMeterAction({ actionKey, params, t });
   } catch (err) {

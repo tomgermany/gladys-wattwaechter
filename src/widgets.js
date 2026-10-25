@@ -24,42 +24,9 @@
 // meter endpoint. So the card shows the device ID it really has, under a label
 // that says so, instead of a MAC address under a false name.
 //
-// THE BUDGET — why this file counts its components
-// A card takes at most 8 components, and among them at most 4 BUTTONS, 6 value
-// tiles, 2 texts and 1 status list. Anything past a cap is DROPPED, in content
-// order, silently. So the four period buttons are exactly the budget: adding a
-// fifth would simply never appear. The tiles below plus the status row and the
-// four buttons come to seven of the eight.
-//
-// WHAT THE CARD SHOWS
-//   - the current power as a big value tile, WITH the meter's own sign:
-//     positive is consumption, negative is feed-in. That is what the user asked
-//     for, and it is also what the meter means, so it is not rewritten here.
-//   - the meter index beside it, so the running total is on the same card as the
-//     live value. It is bound to the feature the integration already publishes,
-//     so it follows the readings without a refresh being wired here.
-//   - the device ID as a status row, so the card says which unit it is.
-//   - four buttons for the period totals: today, last 7, last 30, last 365
-//     days. The active one is highlighted.
-//   - the period total as a further value tile, once a button has been pressed.
-//     It is a computed value, not a device feature, so it comes from this file
-//     and carries the date it was read for.
-//
-// WHY ONE TILE IS BOUND TO A FEATURE AND THE OTHER IS NOT
-// A tile with `device_feature` carries the id of a published feature. Gladys
-// reads that feature's own history and value, so the tile stays right by itself
-// and needs nothing from here. A tile with `value` carries a number this file
-// computed — the period total — because no feature holds it. Keeping the
-// distinction explicit is what stops a stale number being shown as a live one.
-//
-// THE PERIOD TOTALS NEED THE REST API
-// Modbus has no notion of "yesterday". Without a read token in the
-// configuration, `api` is null, and the four buttons are left out rather than
-// shown dead: a button that always fails is worse than no button.
-//
-// THE PERIOD IS PER WIDGET INSTANCE
-// Which period is shown is part of the widget settings, so two copies of the
-// card on two dashboards can show two different periods.
+// THE BUDGET
+// Five optional value tiles, one device-ID status row and one hint text make
+// seven components at most. The tile choices live in widget instance settings.
 // -----------------------------------------------------------------------------
 
 /** Widget key, as declared in the manifest `widgets` field. */
@@ -75,7 +42,7 @@ export const ACTION = {
 };
 
 /** The four periods, in the order they appear on the card. */
-export const PERIOD_KEYS = ['day', 'week', 'month', 'year'];
+export const PERIOD_KEYS = ['day', 'month'];
 
 /**
  * @param {object} ctx
@@ -84,8 +51,8 @@ export const PERIOD_KEYS = ['day', 'week', 'month', 'year'];
  * @param {string|null} ctx.powerFeatureId external_id of the power feature
  * @param {string|null} ctx.indexFeatureId external_id of the meter index feature
  * @param {object} ctx.settings the widget instance settings
- * @param {object|null} ctx.period the last period total read for this widget
- * @param {boolean} ctx.apiEnabled true when a read token is configured
+ * @param {object} ctx.periods cached period totals keyed by period
+ * @param {boolean} ctx.apiEnabled true when the REST API client exists
  * @param {Function} ctx.t labels, per language
  */
 export function buildMeterContent({
@@ -94,7 +61,7 @@ export function buildMeterContent({
   powerFeatureId,
   indexFeatureId,
   settings = {},
-  period = null,
+  periods = {},
   apiEnabled = false,
   t = (key) => key,
 }) {
@@ -109,7 +76,7 @@ export function buildMeterContent({
 
   // 1. The live value, as a tile bound to the device feature: it follows the
   //    published states, so nothing has to be refreshed here.
-  if (powerFeatureId) {
+  if (settings.show_power !== false && powerFeatureId) {
     components.push({
       type: 'value',
       label: t('power'),
@@ -132,7 +99,7 @@ export function buildMeterContent({
   // A meter that does not report the counter gets no feature, and a tile
   // pointing at an id nobody publishes would render as an empty box. The check
   // is the same rule the device builder follows.
-  if (indexFeatureId) {
+  if (settings.show_index !== false && indexFeatureId) {
     components.push({
       type: 'value',
       label: t('index'),
@@ -142,17 +109,20 @@ export function buildMeterContent({
     });
   }
 
-  // 3. The period total, when one has been read. A computed value, so it is
-  //    sent as a plain number with its unit and the day it belongs to.
-  if (period) {
-    components.push({
-      type: 'value',
-      label: t(`period_${period.period}`),
-      icon: 'bar-chart-2',
-      value: period.consumption ?? '–',
-      unit: settings.unit === 'Wh' ? 'Wh' : 'kWh',
-      color: 'info',
-    });
+  // 3. Automatic period tiles, independently configurable.
+  if (apiEnabled) {
+    for (const key of PERIOD_KEYS) {
+      if (settings[`show_${key}`] === false) continue;
+      const result = periods?.[key];
+      components.push({
+        type: 'value',
+        label: t(`period_${key}`),
+        icon: 'bar-chart-2',
+        value: result?.consumption == null ? '–' : (settings.unit === 'Wh' ? result.consumption * 1000 : result.consumption),
+        unit: settings.unit === 'Wh' ? 'Wh' : 'kWh',
+        color: 'info',
+      });
+    }
   }
 
   // 4. Which device this is — the device ID, NOT the utility meter number.
@@ -177,30 +147,12 @@ export function buildMeterContent({
     ],
   });
 
-  // 5. The four period buttons, exactly the budget of the card. Only when the
-  //    REST API is usable, see the note at the top.
-  if (apiEnabled && settings.show_period_buttons !== false) {
-    for (const key of PERIOD_KEYS) {
-      components.push({
-        type: 'button',
-        label: t(`period_${key}`),
-        icon: 'calendar',
-        style: period?.period === key ? 'primary' : 'secondary',
-        action: { key: ACTION.PERIOD, params: { period: key } },
-      });
-    }
-  }
-
+  components.push({ type: 'text', body: 'Werte werden automatisch aktualisiert.' });
   return { ttl_seconds: 60, components };
 }
 
-/**
- * Run a tapped button.
- *
- * Returning the toast text is what puts a short confirmation on the card; the
- * period itself is remembered by the caller and reaches the next
- * `buildMeterContent` call through `period`.
- */
+
+/** Preserve the widget action contract for existing dashboards. */
 export async function runMeterAction({ actionKey, params, t = (key) => key }) {
   if (actionKey !== ACTION.PERIOD) throw new Error(`Unknown widget action: ${actionKey}`);
   const period = String(params?.period ?? '');

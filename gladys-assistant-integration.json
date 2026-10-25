@@ -9,8 +9,8 @@
     "fr": "Lit le WattWächter Plus et affiche la puissance, la consommation et l'injection.",
     "es": "Lee el WattWächter Plus y muestra potencia, consumo y vertido en Gladys Assistant."
   },
-  "version": "1.3.3",
-  "docker_image": "ghcr.io/tomgermany/gladys-wattwaechter:1.3.3",
+  "version": "1.3.4",
+  "docker_image": "ghcr.io/tomgermany/gladys-wattwaechter:widget-configurable-tiles",
   "gladys_version": ">=5.1.0",
   "categories": [
     "energy"
@@ -81,8 +81,8 @@
         "es": "Token de lectura de la API REST (opcional)"
       },
       "description": {
-        "de": "Nur nötig für die Zeitraumwerte (Heute, 7, 30, 365 Tage) und die Szenenaktion 'Verbrauch eines Zeitraums lesen'. Ohne Token bleiben diese Knöpfe aus. Die API-Authentifizierung ist ab Werk aus; ist sie ausgeschaltet, kann das Feld leer bleiben.",
-        "en": "Only needed for the period totals (today, 7, 30, 365 days) and the 'read a period total' scene action. Without a token those buttons stay hidden. API authentication is off at the factory; if it is off, leave this empty.",
+        "de": "Optional: nur erforderlich, wenn die REST-API-Authentifizierung im WattWächter eingeschaltet ist. Ohne aktivierte Authentifizierung kann das Feld leer bleiben.",
+        "en": "Optional: required only when REST API authentication is enabled on the WattWächter. Leave empty when authentication is disabled.",
         "fr": "Nécessaire uniquement pour les totaux de période (aujourd'hui, 7, 30, 365 jours) et l'action de scène « lire le total d'une période ». Sans jeton, ces boutons restent masqués. L'authentification de l'API est désactivée en usine ; si elle l'est, laissez vide.",
         "es": "Solo hace falta para los totales de periodo (hoy, 7, 30, 365 días) y la acción de escena «leer el total de un periodo». Sin token, esos botones no aparecen. La autenticación de la API está desactivada de fábrica; si lo está, deja el campo vacío."
       }
@@ -169,10 +169,10 @@
         "es": "Contador eléctrico"
       },
       "description": {
-        "de": "Aktueller Verbrauch, Geräte-ID und der Zeitraumwert auf Knopfdruck.",
-        "en": "Current consumption, device ID and the period total at the press of a button.",
-        "fr": "Consommation actuelle, ID de l’appareil et total de la période en un clic.",
-        "es": "Consumo actual, ID del aparato y total del periodo con un toque."
+        "de": "Leistung, Zählerstand sowie Tages-, Monats- und Jahreswerte.",
+        "en": "Power, meter index, and daily, monthly and yearly totals.",
+        "fr": "Puissance, index du compteur et totaux par période.",
+        "es": "Potencia, lectura del contador y totales por periodo."
       },
       "icon": "zap",
       "action_timeout_seconds": 15,
@@ -234,19 +234,91 @@
           ]
         },
         {
-          "key": "show_period_buttons",
+          "key": "show_power",
           "type": "boolean",
           "label": {
-            "de": "Zeitraum-Schaltflächen anzeigen",
-            "en": "Show period buttons",
-            "fr": "Afficher les boutons de période",
-            "es": "Mostrar botones de periodo"
+            "de": "Leistungskachel anzeigen",
+            "en": "Show power tile",
+            "fr": "Show power tile",
+            "es": "Show power tile"
           },
           "description": {
-            "de": "Blendet die Schaltflächen für Heute, 7, 30 und 365 Tage ein oder aus.",
-            "en": "Show or hide the buttons for today, 7, 30 and 365 days.",
-            "fr": "Affiche ou masque les boutons pour aujourd’hui, 7, 30 et 365 jours.",
-            "es": "Muestra u oculta los botones de hoy, 7, 30 y 365 días."
+            "de": "Blendet diese Kachel im Widget ein oder aus.",
+            "en": "Show or hide this tile in the widget.",
+            "fr": "Afficher ou masquer cette tuile.",
+            "es": "Mostrar u ocultar esta tarjeta."
+          },
+          "required": false,
+          "default": true
+        },
+        {
+          "key": "show_index",
+          "type": "boolean",
+          "label": {
+            "de": "Zählerstand anzeigen",
+            "en": "Show meter index tile",
+            "fr": "Show meter index tile",
+            "es": "Show meter index tile"
+          },
+          "description": {
+            "de": "Blendet diese Kachel im Widget ein oder aus.",
+            "en": "Show or hide this tile in the widget.",
+            "fr": "Afficher ou masquer cette tuile.",
+            "es": "Mostrar u ocultar esta tarjeta."
+          },
+          "required": false,
+          "default": true
+        },
+        {
+          "key": "show_day",
+          "type": "boolean",
+          "label": {
+            "de": "Kachel Heute anzeigen",
+            "en": "Show today tile",
+            "fr": "Show today tile",
+            "es": "Show today tile"
+          },
+          "description": {
+            "de": "Blendet diese Kachel im Widget ein oder aus.",
+            "en": "Show or hide this tile in the widget.",
+            "fr": "Afficher ou masquer cette tuile.",
+            "es": "Mostrar u ocultar esta tarjeta."
+          },
+          "required": false,
+          "default": true
+        },
+        {
+          "key": "show_month",
+          "type": "boolean",
+          "label": {
+            "de": "Kachel Monat anzeigen",
+            "en": "Show month tile",
+            "fr": "Show month tile",
+            "es": "Show month tile"
+          },
+          "description": {
+            "de": "Blendet diese Kachel im Widget ein oder aus.",
+            "en": "Show or hide this tile in the widget.",
+            "fr": "Afficher ou masquer cette tuile.",
+            "es": "Mostrar u ocultar esta tarjeta."
+          },
+          "required": false,
+          "default": true
+        },
+        {
+          "key": "show_year",
+          "type": "boolean",
+          "label": {
+            "de": "Kachel Jahr anzeigen",
+            "en": "Show year tile",
+            "fr": "Show year tile",
+            "es": "Show year tile"
+          },
+          "description": {
+            "de": "Blendet diese Kachel im Widget ein oder aus.",
+            "en": "Show or hide this tile in the widget.",
+            "fr": "Afficher ou masquer cette tuile.",
+            "es": "Mostrar u ocultar esta tarjeta."
           },
           "required": false,
           "default": true
