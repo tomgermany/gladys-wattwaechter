@@ -135,4 +135,4 @@ export class WattwaechterApi {
       feed_in: answer?.feed_in_kwh ?? answer?.production_kwh ?? null,
     };
   }
-}}
+}
