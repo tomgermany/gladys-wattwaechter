@@ -213,9 +213,7 @@ async function establish() {
     };
     modbus = connection;
 
-    if (config.read_token) {
-      api = new WattwaechterApi({ host: config.host, token: config.read_token });
-    }
+    api = new WattwaechterApi({ host: config.host, token: config.read_token || '' });
 
     state = await modbus.readAll();
     logger.info(
@@ -443,7 +441,7 @@ gladys.onWidgetAction(METER_WIDGET, async (actionKey, params, { settings = {} } 
   if (!api) throw new Error('Die REST-API ist nicht verfügbar. Bitte Lesetoken und Verbindung prüfen.');
   try {
     const period = await api.periodTotal(String(params?.period ?? ''));
-    periodResults.set(widgetSettingsKey(settings), period);
+    periodResults.set(widgetSettingsKey(settings), { ...(periodResults.get(widgetSettingsKey(settings)) ?? {}), [period.period]: period });
     gladys.requestWidgetRefresh(METER_WIDGET);
     return runMeterAction({ actionKey, params, t });
   } catch (err) {
