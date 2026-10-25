@@ -53,7 +53,7 @@ der nur zwei Phasen kennt, fehlt L3 also, statt eine Null anzuzeigen.
 - **Die Leistung** als große Kachel, mit dem Vorzeichen des Zählers. Bei Einspeisung färbt sich die
   Kachel grün.
 - **Die Zählernummer**, damit klar ist, welcher Zähler gemeint ist.
-- **Vier Knöpfe:** Heute, 7 Tage, 30 Tage, 365 Tage. Der gedrückte Zeitraum wird hervorgehoben, und
+- **Vier Knöpfe:** Heute, 7 Tage, 30 Tage, 365 Tage. In den Widget-Einstellungen lassen sie sich ausblenden. Der gedrückte Zeitraum wird hervorgehoben, und
   darunter erscheint der Verbrauch dieses Zeitraums in kWh.
 
 In den Einstellungen der Kachel lässt sich zusätzlich wählen, welcher Zähler die Kachel versorgt und
