@@ -7,6 +7,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- Correct the REST API period parameter for the daily total (`today`).
+- Keep the dashboard widget aligned with the supported daily and monthly totals.
+
+### Changed
+
+- Keep the dashboard widget compact, with configurable tiles for power, meter index, day and month.
+
 ## [1.3.3] - 2026-10-25
 ## [1.3.1] - 2026-10-24
 ## [1.3.0] - 2026-10-23
