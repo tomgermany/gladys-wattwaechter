@@ -81,8 +81,8 @@
         "es": "Token de lectura de la API REST (opcional)"
       },
       "description": {
-        "de": "Nur nötig für die Zeitraumwerte (Heute, 7, 30, 365 Tage) und die Szenenaktion 'Verbrauch eines Zeitraums lesen'. Ohne Token bleiben diese Knöpfe aus. Die API-Authentifizierung ist ab Werk aus; ist sie ausgeschaltet, kann das Feld leer bleiben.",
-        "en": "Only needed for the period totals (today, 7, 30, 365 days) and the 'read a period total' scene action. Without a token those buttons stay hidden. API authentication is off at the factory; if it is off, leave this empty.",
+        "de": "Optional: nur erforderlich, wenn die REST-API-Authentifizierung im WattWächter eingeschaltet ist. Ohne aktivierte Authentifizierung kann das Feld leer bleiben.",
+        "en": "Optional: required only when REST API authentication is enabled on the WattWächter. Leave empty when authentication is disabled.",
         "fr": "Nécessaire uniquement pour les totaux de période (aujourd'hui, 7, 30, 365 jours) et l'action de scène « lire le total d'une période ». Sans jeton, ces boutons restent masqués. L'authentification de l'API est désactivée en usine ; si elle l'est, laissez vide.",
         "es": "Solo hace falta para los totales de periodo (hoy, 7, 30, 365 días) y la acción de escena «leer el total de un periodo». Sin token, esos botones no aparecen. La autenticación de la API está desactivada de fábrica; si lo está, deja el campo vacío."
       }
@@ -169,10 +169,10 @@
         "es": "Contador eléctrico"
       },
       "description": {
-        "de": "Aktueller Verbrauch, Geräte-ID und der Zeitraumwert auf Knopfdruck.",
-        "en": "Current consumption, device ID and the period total at the press of a button.",
-        "fr": "Consommation actuelle, ID de l’appareil et total de la période en un clic.",
-        "es": "Consumo actual, ID del aparato y total del periodo con un toque."
+        "de": "Leistung, Zählerstand und automatisch aktualisierte Tages-, Monats- und Jahreswerte. Kacheln einzeln konfigurierbar.",
+        "en": "Power, meter index and automatically refreshed daily, monthly and yearly totals. Tiles can be configured individually.",
+        "fr": "Puissance, index du compteur et totaux journaliers, mensuels et annuels actualisés automatiquement. Tuiles configurables individuellement.",
+        "es": "Potencia, lectura del contador y totales diarios, mensuales y anuales actualizados automáticamente. Tarjetas configurables individualmente."
       },
       "icon": "zap",
       "action_timeout_seconds": 15,
