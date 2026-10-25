@@ -85,6 +85,12 @@ let state = null; // last readings
 let device = null; // { host, serial, model, name }: the identity of the meter
 let lastRead = 0; // when the readings were taken, to honour poll_frequency
 let powerSide = 'normal'; // 'normal' | 'over' | 'under', see firePowerEvents()
+// Last period result per widget settings; Gladys pulls the card again after an action.
+const periodResults = new Map();
+
+function widgetSettingsKey(settings) {
+  return JSON.stringify(settings ?? {});
+}
 
 /**
  * The connect attempt running right now, or null.
@@ -402,7 +408,7 @@ function featureId(key) {
   return gladys.externalIds(PLATFORM_TYPE, platformId(device)).feature(key);
 }
 
-gladys.onWidgetGet(METER_WIDGET, async (settings = {}) => {
+gladys.onWidgetGet(METER_WIDGET, async ({ settings = {} } = {}) => {
   // Pick up a fresh reading, so the tile is not a minute stale when it is opened.
   if (modbus && Date.now() - lastRead > 10000) await refresh().catch(() => {});
   return buildMeterContent({
@@ -411,15 +417,24 @@ gladys.onWidgetGet(METER_WIDGET, async (settings = {}) => {
     powerFeatureId: featureId(KEY.POWER),
     indexFeatureId: featureId(KEY.CONSUMPTION),
     settings,
-    // The period totals need the REST API, which needs a read token. Without one
-    // the four period buttons are left out rather than shown dead.
+    period: periodResults.get(widgetSettingsKey(settings)) ?? null,
+    // Period buttons are useful only when the REST API client exists.
     apiEnabled: Boolean(api),
     t,
   });
 });
 
-gladys.onWidgetAction(METER_WIDGET, async (actionKey, params) => {
-  return runMeterAction({ actionKey, params, t });
+gladys.onWidgetAction(METER_WIDGET, async (actionKey, params, { settings = {} } = {}) => {
+  if (!api) throw new Error('Die REST-API ist nicht verfügbar. Bitte Lesetoken und Verbindung prüfen.');
+  try {
+    const period = await api.periodTotal(String(params?.period ?? ''));
+    periodResults.set(widgetSettingsKey(settings), period);
+    gladys.requestWidgetRefresh(METER_WIDGET);
+    return runMeterAction({ actionKey, params, t });
+  } catch (err) {
+    logger.error(`Widget period read failed (${params?.period ?? 'unknown'}): ${err.message}`);
+    return `Zeitraumwert konnte nicht gelesen werden: ${err.message}`;
+  }
 });
 
 /**
