@@ -409,16 +409,31 @@ function featureId(key) {
 }
 
 gladys.onWidgetGet(METER_WIDGET, async ({ settings = {} } = {}) => {
-  // Pick up a fresh reading, so the tile is not a minute stale when it is opened.
   if (modbus && Date.now() - lastRead > 10000) await refresh().catch(() => {});
+
+  const key = widgetSettingsKey(settings);
+  let periods = periodResults.get(key) ?? {};
+  if (api) {
+    const wanted = PERIOD_KEYS.filter((period) => settings[`show_${period}`] !== false);
+    const results = await Promise.all(wanted.map(async (period) => {
+      try {
+        return [period, await api.periodTotal(period)];
+      } catch (err) {
+        logger.warn(`Widget period read failed (${period}): ${err.message}`);
+        return [period, periods[period] ?? null];
+      }
+    }));
+    periods = { ...periods, ...Object.fromEntries(results.filter(([, value]) => value)) };
+    periodResults.set(key, periods);
+  }
+
   return buildMeterContent({
     state,
     device,
     powerFeatureId: featureId(KEY.POWER),
     indexFeatureId: featureId(KEY.CONSUMPTION),
     settings,
-    period: periodResults.get(widgetSettingsKey(settings)) ?? null,
-    // Period buttons are useful only when the REST API client exists.
+    periods,
     apiEnabled: Boolean(api),
     t,
   });
