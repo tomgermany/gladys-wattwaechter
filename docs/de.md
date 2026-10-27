@@ -92,8 +92,7 @@ Zähler nicht“ reserviert, wird gefiltert und nie veröffentlicht.
 
 ## Rechtliches
 
-Dies ist ein **unabhängiges, inoffizielles Projekt**. Es steht in **keiner Verbindung zu Smart
-Circuits GmbH** oder zu WattWächter und wird von diesen weder autorisiert noch unterstützt oder
+Dies ist ein **unabhängiges, inoffizielles Projekt**. Es steht in **keiner Verbindung zu SmartCircuits GmbH** oder zu WattWächter und wird von diesen weder autorisiert noch unterstützt oder
 gesponsert. **WattWächter** ist eine Marke des jeweiligen Inhabers und wird hier nur verwendet, um das
 Gerät zu benennen, mit dem diese Integration arbeitet. Alle übrigen Marken, Produkt- und Firmennamen
 gehören ihren jeweiligen Inhabern.
