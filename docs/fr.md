@@ -91,7 +91,7 @@ cette mesure » est filtrée et jamais publiée.
 
 ## Mention légale
 
-Ce projet est **indépendant et non officiel**. Il **n'est ni affilié à Smart Circuits GmbH** ni à
+Ce projet est **indépendant et non officiel**. Il **n'est ni affilié à SmartCircuits GmbH** ni à
 WattWächter, et n'est ni autorisé, ni soutenu, ni sponsorisé par eux. **WattWächter** est une marque de
 son propriétaire respectif et n'est utilisée ici que pour nommer l'appareil avec lequel cette
 intégration fonctionne. Toutes les autres marques, noms de produits et de sociétés appartiennent à
