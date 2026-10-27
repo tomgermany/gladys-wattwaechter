@@ -99,7 +99,7 @@ skipped, so a mistake there shows up as a missing reading rather than a failure.
 
 ## Legal notice
 
-This is an **independent, unofficial project**. It is **not affiliated with Smart Circuits GmbH** or
+This is an **independent, unofficial project**. It is **not affiliated with SmartCircuits GmbH** or
 with WattWächter, and is neither authorised nor supported or sponsored by them. **WattWächter** is a
 trademark of its respective owner, used here only to name the device this integration works with. All
 other trademarks, product and company names belong to their respective owners.
