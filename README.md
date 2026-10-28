@@ -43,9 +43,8 @@ Open the WattWächter's web interface, use the **API explorer**, pick `POST /api
 | Address | IP or mDNS name of the device, e.g. `192.168.0.6`. |
 | Modbus port | 502 unless you changed it in the device. |
 | Read token | The REST API read token, only needed for the period buttons. |
-| Refresh interval | How often the meter is read, 60 seconds minimum. |
+| Refresh interval | Choose 1, 5, 15, 30 or 60 minutes. |
 | Power limits | The two thresholds of the scene trigger. 0 disables a side. |
-| MQTT publishing | Optional, off by default. Enter the broker address and port, optional credentials, TLS, interval and topic prefix. Only confirmed OBIS mappings are published; topics use `wattwaechter/1-0-1.8.0` style names. Energy counters are published in kWh, power in W, voltage in V, current in A and frequency in Hz. Disabling stops publishing but keeps the saved configuration. |
 
 ## How it works
 
