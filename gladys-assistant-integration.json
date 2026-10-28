@@ -91,7 +91,7 @@
       "key": "poll_frequency",
       "type": "select",
       "required": false,
-      "default": 1,
+      "default": "1",
       "label": {
         "de": "Abfrageintervall in Minuten",
         "en": "Poll interval in minutes",
@@ -106,7 +106,7 @@
       },
       "options": [
         {
-          "value": 1,
+          "value": "1",
           "label": {
             "de": "1 Minute",
             "en": "1 minute",
@@ -115,7 +115,7 @@
           }
         },
         {
-          "value": 5,
+          "value": "5",
           "label": {
             "de": "5 Minuten",
             "en": "5 minutes",
@@ -124,7 +124,7 @@
           }
         },
         {
-          "value": 15,
+          "value": "15",
           "label": {
             "de": "15 Minuten",
             "en": "15 minutes",
@@ -133,7 +133,7 @@
           }
         },
         {
-          "value": 30,
+          "value": "30",
           "label": {
             "de": "30 Minuten",
             "en": "30 minutes",
@@ -142,7 +142,7 @@
           }
         },
         {
-          "value": 60,
+          "value": "60",
           "label": {
             "de": "60 Minuten",
             "en": "60 minutes",
