@@ -1,6 +1,6 @@
 # Gladys Assistant – externe WattWächter-Integration
 
-Die **WattWächter-Integration für Gladys Assistant** bindet den WattWächter Plus in die lokale Hausautomation ein. Sie stellt aktuelle Messwerte des Stromzählers in Gladys bereit und ermöglicht, Verbrauchswerte im Dashboard anzuzeigen und in Szenen zu verwenden.
+Die **WattWächter-Integration für Gladys Assistant** bindet den WattWächter Plus in die Hausautomation Gladys Assistant ein. Sie stellt aktuelle Messwerte des Stromzählers in Gladys Assistant bereit und ermöglicht, Verbrauchswerte im Dashboard anzuzeigen und in Szenen zu verwenden.
 
 Die Kommunikation erfolgt direkt im lokalen Netzwerk. Für aktuelle Messwerte ist keine Cloud-Verbindung erforderlich.
 
@@ -130,10 +130,7 @@ Nicht jeder Stromzähler stellt alle Phasen- oder Zusatzwerte bereit. Die Integr
 
 ## Hinweise
 
-Die WattWächter-Integration ist eine externe Integration für Gladys Assistant. Die aktuelle Version und Installationshinweise finden sich im Projekt-Repository:
+Die WattWächter-Integration ist eine externe Community Integration für Gladys Assistant. Die aktuelle Version und Installationshinweise finden sich im Projekt-Repository:
 
 [WattWächter Plus für Gladys Assistant auf GitHub](https://github.com/tomgermany/gladys-wattwaechter)
 
-## Rechtlicher Hinweis
-
-Diese Seite beschreibt die Integration des WattWächter Plus in Gladys Assistant. Produkt- und Markennamen gehören ihren jeweiligen Inhabern.
