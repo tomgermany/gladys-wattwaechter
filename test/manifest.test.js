@@ -22,6 +22,14 @@ test('the manifest config defaults match DEFAULT_CONFIG', () => {
   }
 });
 
+test('poll interval uses minute choices and MQTT settings stay hidden', () => {
+  const poll = manifest.config_schema.find((field) => field.key === 'poll_frequency');
+  assert.equal(poll.type, 'select');
+  assert.equal(poll.default, 1);
+  assert.deepEqual(poll.options.map((option) => option.value), [1, 5, 15, 30, 60]);
+  assert.ok(!manifest.config_schema.some((field) => field.key.startsWith('mqtt_')));
+});
+
 test('the manifest and the package agree on the version', () => {
   assert.equal(manifest.version, pkg.version);
 });
