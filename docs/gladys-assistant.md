@@ -51,7 +51,11 @@ Der Port `502` ist der Standardport. Falls am Gerät ein anderer Port konfigurie
 
 ![Integration](..//images//install-1.png)
 
+Suchen Sie nach Wattwächter (oben rechts ):
+
 ![Integration](..//images//install-2.png)
+
+Wählen Sie die Integration Wattwächter und installieren diese:
 
 ![Integration](..//images//install-3.png)
 
