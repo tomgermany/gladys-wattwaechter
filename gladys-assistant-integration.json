@@ -106,6 +106,163 @@
       }
     },
     {
+      "key": "mqtt_intro",
+      "type": "section",
+      "label": {
+        "de": "MQTT – WattWächter-Messwerte bereitstellen",
+        "en": "MQTT – publish WattWächter readings",
+        "fr": "MQTT – publier les mesures WattWächter",
+        "es": "MQTT – publicar lecturas WattWächter"
+      },
+      "description": {
+        "de": "Optional: Veröffentlicht WattWächter-Messwerte über einen MQTT-Broker, damit sie in Gladys für virtuelle Geräte, Widgets und Automatisierungen genutzt werden können. Trage die Broker-Daten selbst ein. Das Deaktivieren stoppt die Veröffentlichung, ohne gespeicherte Einstellungen zu löschen. Die MQTT-Veröffentlichung wird in einem späteren Schritt aktiviert.",
+        "en": "Optional: publishes WattWächter readings through an MQTT broker for use by virtual devices, widgets and automations in Gladys. Enter the broker details yourself. Disabling publishing does not delete saved settings. MQTT publishing will be enabled in a later step.",
+        "fr": "Facultatif : publie les mesures WattWächter via un broker MQTT pour les appareils virtuels, widgets et automatisations Gladys. Saisissez vous-même les paramètres du broker. La désactivation arrête la publication sans effacer les paramètres enregistrés. La publication MQTT sera activée dans une étape ultérieure.",
+        "es": "Opcional: publica lecturas WattWächter mediante un broker MQTT para usarlas en dispositivos virtuales, widgets y automatizaciones de Gladys. Introduce los datos del broker manualmente. Desactivar la publicación no borra la configuración guardada. La publicación MQTT se activará en un paso posterior."
+      }
+    },
+    {
+      "key": "mqtt_enabled",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "label": {
+        "de": "MQTT-Bereitstellung aktivieren",
+        "en": "Enable MQTT publishing",
+        "fr": "Activer la publication MQTT",
+        "es": "Activar publicación MQTT"
+      },
+      "description": {
+        "de": "Standardmäßig aus. Solange die MQTT-Veröffentlichung noch nicht implementiert ist, hat diese Option noch keine Auswirkung auf Messwerte.",
+        "en": "Off by default. Until MQTT publishing is implemented, this option does not yet affect readings.",
+        "fr": "Désactivé par défaut. Tant que la publication MQTT n'est pas implémentée, cette option n'a pas encore d'effet sur les mesures.",
+        "es": "Desactivado por defecto. Hasta que se implemente la publicación MQTT, esta opción aún no afecta a las lecturas."
+      }
+    },
+    {
+      "key": "mqtt_host",
+      "type": "string",
+      "required": false,
+      "label": {
+        "de": "MQTT-Broker-Adresse / IP",
+        "en": "MQTT broker address / IP",
+        "fr": "Adresse / IP du broker MQTT",
+        "es": "Dirección / IP del broker MQTT"
+      },
+      "description": {
+        "de": "Adresse des MQTT-Brokers, zum Beispiel die IP deines Gladys-Servers.",
+        "en": "MQTT broker address, for example the IP address of your Gladys server.",
+        "fr": "Adresse du broker MQTT, par exemple l'adresse IP de votre serveur Gladys.",
+        "es": "Dirección del broker MQTT, por ejemplo la IP del servidor Gladys."
+      }
+    },
+    {
+      "key": "mqtt_port",
+      "type": "number",
+      "required": false,
+      "default": 1883,
+      "label": {
+        "de": "MQTT-Port",
+        "en": "MQTT port",
+        "fr": "Port MQTT",
+        "es": "Puerto MQTT"
+      },
+      "description": {
+        "de": "Standard 1883 für MQTT ohne TLS; bei TLS den Broker-Port verwenden.",
+        "en": "Default 1883 for MQTT without TLS; use the broker's TLS port when enabled.",
+        "fr": "Par défaut 1883 sans TLS ; utilisez le port TLS du broker si nécessaire.",
+        "es": "Por defecto 1883 sin TLS; usa el puerto TLS del broker cuando corresponda."
+      }
+    },
+    {
+      "key": "mqtt_username",
+      "type": "string",
+      "required": false,
+      "label": {
+        "de": "MQTT-Benutzername (optional)",
+        "en": "MQTT username (optional)",
+        "fr": "Nom d'utilisateur MQTT (facultatif)",
+        "es": "Usuario MQTT (opcional)"
+      },
+      "description": {
+        "de": "Leer lassen, wenn der Broker keine Anmeldung benötigt.",
+        "en": "Leave empty if the broker does not require authentication.",
+        "fr": "Laissez vide si le broker ne nécessite pas d'authentification.",
+        "es": "Déjalo vacío si el broker no requiere autenticación."
+      }
+    },
+    {
+      "key": "mqtt_password",
+      "type": "string",
+      "required": false,
+      "label": {
+        "de": "MQTT-Passwort (optional)",
+        "en": "MQTT password (optional)",
+        "fr": "Mot de passe MQTT (facultatif)",
+        "es": "Contraseña MQTT (opcional)"
+      },
+      "description": {
+        "de": "Wird nur für die MQTT-Anmeldung verwendet und darf nicht protokolliert werden.",
+        "en": "Used only for MQTT authentication and must never be logged.",
+        "fr": "Utilisé uniquement pour l'authentification MQTT et ne doit jamais être journalisé.",
+        "es": "Se usa solo para la autenticación MQTT y nunca debe registrarse en los logs."
+      }
+    },
+    {
+      "key": "mqtt_tls",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "label": {
+        "de": "TLS/SSL verwenden",
+        "en": "Use TLS/SSL",
+        "fr": "Utiliser TLS/SSL",
+        "es": "Usar TLS/SSL"
+      },
+      "description": {
+        "de": "Aktivieren, wenn der Broker eine TLS-verschlüsselte Verbindung erwartet.",
+        "en": "Enable if the broker expects a TLS-encrypted connection.",
+        "fr": "Activez cette option si le broker exige une connexion chiffrée TLS.",
+        "es": "Actívalo si el broker requiere una conexión cifrada TLS."
+      }
+    },
+    {
+      "key": "mqtt_interval",
+      "type": "number",
+      "required": false,
+      "default": 60000,
+      "label": {
+        "de": "MQTT-Veröffentlichungsintervall in Millisekunden",
+        "en": "MQTT publishing interval in milliseconds",
+        "fr": "Intervalle de publication MQTT en millisecondes",
+        "es": "Intervalo de publicación MQTT en milisegundos"
+      },
+      "description": {
+        "de": "Geplantes Standardintervall: 60000 ms (eine Minute). Wird erst mit der MQTT-Veröffentlichung wirksam.",
+        "en": "Planned default: 60000 ms (one minute). Takes effect when MQTT publishing is implemented.",
+        "fr": "Valeur prévue par défaut : 60000 ms (une minute). Sera appliquée lorsque la publication MQTT sera implémentée.",
+        "es": "Valor previsto por defecto: 60000 ms (un minuto). Se aplicará cuando se implemente la publicación MQTT."
+      }
+    },
+    {
+      "key": "mqtt_topic_prefix",
+      "type": "string",
+      "required": false,
+      "default": "wattwaechter",
+      "label": {
+        "de": "MQTT-Topic-Präfix",
+        "en": "MQTT topic prefix",
+        "fr": "Préfixe de topic MQTT",
+        "es": "Prefijo de topic MQTT"
+      },
+      "description": {
+        "de": "Präfix für veröffentlichte Messwerte. Standard: wattwaechter.",
+        "en": "Prefix for published readings. Default: wattwaechter.",
+        "fr": "Préfixe des mesures publiées. Par défaut : wattwaechter.",
+        "es": "Prefijo de las lecturas publicadas. Por defecto: wattwaechter."
+      }
+    },
+    {
       "key": "power_max",
       "type": "number",
       "required": false,
@@ -143,21 +300,6 @@
     }
   ],
   "actions": [
-    {
-      "key": "test_mqtt_config_access",
-      "label": {
-        "de": "MQTT-Konfigurationszugriff prüfen",
-        "en": "Test MQTT configuration access",
-        "fr": "Tester l'accès à la configuration MQTT",
-        "es": "Probar acceso a la configuración MQTT"
-      },
-      "description": {
-        "de": "Prüft nur, ob die Integration die MQTT-Konfiguration von Gladys lesen dürfte. Zugangsdaten werden weder ausgelesen noch gespeichert.",
-        "en": "Checks only whether the integration is allowed to read Gladys' MQTT configuration. Credentials are not read or stored.",
-        "fr": "Vérifie uniquement si l'intégration peut lire la configuration MQTT de Gladys. Les identifiants ne sont ni lus ni enregistrés.",
-        "es": "Solo comprueba si la integración puede leer la configuración MQTT de Gladys. No se leen ni guardan credenciales."
-      }
-    },
     {
       "key": "test_connection",
       "label": {
