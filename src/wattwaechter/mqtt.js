@@ -95,7 +95,7 @@ export class WattwaechterMqttPublisher {
     if (!this.client?.connected || !this.latestState || !this.config?.mqtt_enabled) return;
     const messages = buildMqttMessages(this.latestState, this.config.mqtt_topic_prefix);
     for (const message of messages) {
-      this.client.publish(message.topic, message.payload, { qos: 0, retain: true }, (err) => {
+      this.client.publish(message.topic, message.payload, { qos: 0, retain: false }, (err) => {
         if (err) this.logger.warn(`MQTT publish failed for ${message.topic}: ${err.code || err.name || 'error'}`);
       });
     }
