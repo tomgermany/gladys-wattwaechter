@@ -16,7 +16,8 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@gladysassistant/integration-sdk": "^0.15.0"
+    "@gladysassistant/integration-sdk": "^0.15.0",
+    "mqtt": "^5.14.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
