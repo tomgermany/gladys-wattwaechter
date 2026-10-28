@@ -12,9 +12,7 @@
 // really uses, and it is invisible to the user, who only ever sees the form.
 //
 // Both of these disagreed once, and both had teeth:
-//   poll_frequency was 60 here while the manifest said 60000. index.js reads the
-//   value as MILLISECONDS, so the poll would have run every 60 ms instead of
-//   once a minute — on a device that accepts two Modbus clients at a time.
+//   poll_frequency used to be milliseconds; it is now minutes and is converted in index.js.
 //   power_max was 3500 while the manifest said 0. 0 switches that side of the
 //   scene trigger off, so every user would have been signed up for "power
 //   threshold crossed" alerts at 3500 W without asking for them.
@@ -26,10 +24,8 @@
 export const DEFAULT_CONFIG = {
   host: '',
   modbus_port: 502,
-  // MILLISECONDS, not seconds: Gladys only accepts a poll_frequency out of
-  // DEVICE_POLL_FREQUENCIES (1000, 2000, 10000, 15000, 30000, 60000), and
-  // index.js compares it against Date.now() directly.
-  poll_frequency: 60000, // once a minute
+  // Minutes, matching the selector in the manifest. Gladys polls at most once per minute.
+  poll_frequency: 1,
   read_token: '',
   // 0 switches the side off. Both sides default to off: the trigger is
   // something the user opts into, not something the integration assumes.
@@ -51,7 +47,12 @@ export function normalizeConfig(raw = {}) {
     ...raw,
     host: String(raw.host ?? DEFAULT_CONFIG.host).trim(),
     modbus_port: Number(raw.modbus_port ?? DEFAULT_CONFIG.modbus_port),
-    poll_frequency: Number(raw.poll_frequency ?? DEFAULT_CONFIG.poll_frequency),
+    // Old installations may still send millisecond values from the previous form.
+    // Values above 60 cannot be valid minute-selector choices, so migrate them to 1 minute.
+    poll_frequency: (() => {
+      const value = Number(raw.poll_frequency ?? DEFAULT_CONFIG.poll_frequency);
+      return value > 60 ? 1 : value;
+    })(),
     read_token: String(raw.read_token ?? DEFAULT_CONFIG.read_token).trim(),
     power_max: Number(raw.power_max ?? DEFAULT_CONFIG.power_max),
     power_min: Number(raw.power_min ?? DEFAULT_CONFIG.power_min),
