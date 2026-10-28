@@ -13,9 +13,9 @@ test('normalizeConfig keeps user values over the defaults', () => {
 });
 
 test('normalizeConfig coerces numeric strings coming from a form', () => {
-  const config = normalizeConfig({ modbus_port: '1502', poll_frequency: '120' });
+  const config = normalizeConfig({ modbus_port: '1502', poll_frequency: '15' });
   assert.equal(config.modbus_port, 1502);
-  assert.equal(config.poll_frequency, 120);
+  assert.equal(config.poll_frequency, 15);
 });
 
 test('normalizeConfig trims the host and the token', () => {
@@ -26,4 +26,8 @@ test('normalizeConfig trims the host and the token', () => {
 
 test('a negative lower power limit is accepted', () => {
   assert.equal(normalizeConfig({ power_min: -2500 }).power_min, -2500);
+});
+
+test('normalizeConfig migrates legacy millisecond polling values to one minute', () => {
+  assert.equal(normalizeConfig({ poll_frequency: '60000' }).poll_frequency, 1);
 });
