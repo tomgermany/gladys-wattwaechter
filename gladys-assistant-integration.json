@@ -144,6 +144,21 @@
   ],
   "actions": [
     {
+      "key": "test_mqtt_config_access",
+      "label": {
+        "de": "MQTT-Konfigurationszugriff prüfen",
+        "en": "Test MQTT configuration access",
+        "fr": "Tester l'accès à la configuration MQTT",
+        "es": "Probar acceso a la configuración MQTT"
+      },
+      "description": {
+        "de": "Prüft nur, ob die Integration die MQTT-Konfiguration von Gladys lesen dürfte. Zugangsdaten werden weder ausgelesen noch gespeichert.",
+        "en": "Checks only whether the integration is allowed to read Gladys' MQTT configuration. Credentials are not read or stored.",
+        "fr": "Vérifie uniquement si l'intégration peut lire la configuration MQTT de Gladys. Les identifiants ne sont ni lus ni enregistrés.",
+        "es": "Solo comprueba si la integración puede leer la configuración MQTT de Gladys. No se leen ni guardan credenciales."
+      }
+    },
+    {
       "key": "test_connection",
       "label": {
         "de": "Verbindung prüfen",
