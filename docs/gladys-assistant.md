@@ -4,7 +4,7 @@ Die **WattWächter-Integration für Gladys Assistant** bindet den WattWächter P
 
 Die Kommunikation erfolgt direkt im lokalen Netzwerk. Für aktuelle Messwerte ist keine Cloud-Verbindung erforderlich.
 
-<!-- BILD-PLATZHALTER: Hier das Cover oder eine Abbildung der Gladys-Integration einfügen. -->
+![Integration](..//cover.png)
 
 ## Funktionen im Überblick
 
