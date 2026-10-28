@@ -118,11 +118,14 @@ export const COUNTERS = [
     name: 'Bezug',
   },
   {
+    // Export energy (OBIS 2.8.0): the vendor confirms these addresses.
+    // Model 203 uses the 32-bit accumulator at 40108–40109 and TotWh_SF
+    // at 40124; Model 213 exposes the same counter as float32 at 40237–40238.
     key: 'feed_in',
-    model203: 40118,
+    model203: 40108,
     length203: 2,
-    scale203: 40126,
-    model213: 40251,
+    scale203: 40124,
+    model213: 40237,
     unit: 'Wh',
     name: 'Einspeisung',
   },
