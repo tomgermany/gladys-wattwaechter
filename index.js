@@ -493,6 +493,68 @@ gladys.onAction('test_connection', async () => {
   }
 });
 
+/**
+ * Diagnostic probe only: can this integration read Gladys' configured MQTT
+ * broker settings with its integration token?
+ *
+ * The endpoint is admin-only in Gladys. We never parse or log its response
+ * body because it contains the broker password; only the HTTP status is used.
+ * This action does not change settings or affect Modbus.
+ */
+gladys.onAction('test_mqtt_config_access', async () => {
+  const hostApiUrl = process.env.GLADYS_HOST_API_URL;
+  const token = process.env.GLADYS_INTEGRATION_TOKEN;
+  if (!hostApiUrl || !token) {
+    return {
+      de: 'MQTT-Konfiguration kann nicht geprüft werden: Gladys-API-Adresse oder Integrationstoken fehlt.',
+      en: 'Cannot check MQTT configuration: Gladys API URL or integration token is missing.',
+      fr: "Impossible de vérifier la configuration MQTT : l'adresse API Gladys ou le jeton d'intégration manque.",
+      es: 'No se puede comprobar la configuración MQTT: falta la URL de la API Gladys o el token de integración.',
+    };
+  }
+
+  try {
+    const url = new URL('/api/v1/service/mqtt/config', hostApiUrl);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: 'Bearer ' + token },
+      signal: AbortSignal.timeout(5000),
+    });
+    // Never consume or log this body: a successful response includes credentials.
+    await response.body?.cancel().catch(() => {});
+    if (response.ok) {
+      return {
+        de: 'MQTT-Konfiguration ist über die Integration erreichbar (HTTP ' + response.status + '). Zugangsdaten wurden nicht ausgelesen oder gespeichert.',
+        en: 'MQTT configuration is reachable by the integration (HTTP ' + response.status + '). Credentials were not read or stored.',
+        fr: 'La configuration MQTT est accessible à l’intégration (HTTP ' + response.status + '). Les identifiants n’ont pas été lus ni enregistrés.',
+        es: 'La configuración MQTT es accesible para la integración (HTTP ' + response.status + '). No se leyeron ni guardaron credenciales.',
+      };
+    }
+    if (response.status === 401 || response.status === 403) {
+      return {
+        de: 'MQTT-Konfiguration nicht automatisch lesbar: Gladys verweigert den Zugriff (HTTP ' + response.status + ').',
+        en: 'MQTT configuration is not readable with the integration token: Gladys denied access (HTTP ' + response.status + ').',
+        fr: 'La configuration MQTT n’est pas lisible par l’intégration (HTTP ' + response.status + ').',
+        es: 'La integración no puede leer la configuración MQTT (HTTP ' + response.status + ').',
+      };
+    }
+    return {
+      de: 'MQTT-Konfiguration nicht lesbar: Gladys antwortet mit HTTP ' + response.status + '.',
+      en: 'MQTT configuration is not readable; Gladys returned HTTP ' + response.status + '.',
+      fr: 'La configuration MQTT n’est pas lisible (HTTP ' + response.status + ').',
+      es: 'La configuración MQTT no se puede leer (HTTP ' + response.status + ').',
+    };
+  } catch (err) {
+    logger.warn('MQTT config access probe failed: ' + (err.name || 'Error'));
+    return {
+      de: 'MQTT-Konfiguration konnte nicht geprüft werden. Gladys-API-Erreichbarkeit und Protokoll prüfen.',
+      en: 'Could not check MQTT configuration. Check Gladys API reachability and protocol.',
+      fr: 'Impossible de vérifier la configuration MQTT. Vérifiez l’accès à l’API Gladys et le protocole.',
+      es: 'No se pudo comprobar la configuración MQTT. Comprueba el acceso a la API Gladys y el protocolo.',
+    };
+  }
+});
+
 // --- Connection lifecycle ----------------------------------------------------
 // Both of these connect, and on a restart both fire within seconds. They are
 // safe to call one after the other because connectDevice() lets the second
