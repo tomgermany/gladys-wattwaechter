@@ -74,8 +74,10 @@ import {
 } from './src/devices/meter.js';
 import { METER_WIDGET, PERIOD_KEYS, buildMeterContent, runMeterAction } from './src/widgets.js';
 import { t, KEY } from './src/wattwaechter/labels.js';
+import { WattwaechterMqttPublisher } from './src/wattwaechter/mqtt.js';
 
 const gladys = new GladysIntegration();
+const mqttPublisher = new WattwaechterMqttPublisher({ logger });
 
 // --- State of the running integration ----------------------------------------
 let config = normalizeConfig(); // the user settings, re-read on every change
@@ -114,6 +116,7 @@ const NO_HOST = {
 /** Read the configuration Gladys holds into `config`. */
 async function readConfig() {
   config = normalizeConfig(await gladys.getConfig());
+  mqttPublisher.configure(config);
   return config;
 }
 
@@ -216,6 +219,7 @@ async function establish() {
     api = new WattwaechterApi({ host: config.host, token: config.read_token || '' });
 
     state = await modbus.readAll();
+    mqttPublisher.updateState(state);
     logger.info(
       `Meter ready: ${device.name} (${device.serial || 'no serial'}), firmware ${info.firmware}, ` +
         `${Object.keys(state).length} readings, modbus model ${modbus.usesFloatModel ? '213 (float)' : '203 (scaled int)'}, ` +
@@ -265,6 +269,7 @@ async function refresh() {
   if (!modbus) return;
   state = await modbus.readAll();
   lastRead = Date.now();
+  mqttPublisher.updateState(state);
   await publishAll(gladys, device, state);
   await firePowerEvents();
 }
@@ -511,6 +516,7 @@ gladys.on('connected', async () => {
 
 gladys.onConfigUpdated(async (newConfig) => {
   config = normalizeConfig(newConfig);
+  mqttPublisher.configure(config);
   powerSide = 'normal';
   if (await connectDevice()) await publishDevice();
   gladys.requestWidgetRefresh(METER_WIDGET);
@@ -519,6 +525,7 @@ gladys.onConfigUpdated(async (newConfig) => {
 // --- Shutdown ----------------------------------------------------------------
 gladys.handleShutdown(async (signal) => {
   logger.info(`Received ${signal} -> graceful shutdown`);
+  mqttPublisher.close();
   await modbus?.transport?.close().catch(() => {});
   modbus = null;
 });
