@@ -94,10 +94,13 @@ The layout, and why each piece is where it is:
 Verified against a **WattWächter Plus on firmware 1.2.1**: the connection, the identity registers, the
 readings, the two meter totals, the device in Gladys and the widget with its period buttons.
 
-**Not verified:** the unit tests have been written but the suite has not been run against the real
-SDK in this repository, and the register addresses of the SunSpec model 213 layout were derived from
-the model 203 addresses rather than read off a device. A register that does not answer is logged and
-skipped, so a mistake there shows up as a missing reading rather than a failure.
+The WattWächter documentation confirms the feed-in energy registers used by the fix in PR #11:
+model 203 uses registers `40108–40109` with scale factor `40124`, and model 213 uses
+`40237–40238` as a float32 value. The code change and regression test are proposed in
+[PR #11](https://github.com/tomgermany/gladys-wattwaechter/pull/11); the test suite has not yet been
+run, and the corrected feed-in counter still needs to be checked against a real device. Until that
+practical check is complete, the register mapping should be considered confirmed by documentation,
+not yet verified end-to-end on hardware.
 
 ## Legal notice
 
