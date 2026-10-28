@@ -89,178 +89,68 @@
     },
     {
       "key": "poll_frequency",
-      "type": "number",
+      "type": "select",
       "required": false,
-      "default": 60000,
+      "default": 1,
       "label": {
-        "de": "Abfrageintervall in Millisekunden",
-        "en": "Poll interval in milliseconds",
-        "fr": "Intervalle d'interrogation en millisecondes",
-        "es": "Intervalo de consulta en milisegundos"
+        "de": "Abfrageintervall in Minuten",
+        "en": "Poll interval in minutes",
+        "fr": "Intervalle d’interrogation en minutes",
+        "es": "Intervalo de consulta en minutos"
       },
       "description": {
-        "de": "Wie oft die Werte gelesen werden. Erlaubt sind 1000, 2000, 10000, 15000, 30000 und 60000. Standard 60000, also einmal pro Minute.",
-        "en": "How often the values are read. Allowed values are 1000, 2000, 10000, 15000, 30000 and 60000. Default 60000, once a minute.",
-        "fr": "Fréquence de lecture des valeurs. Valeurs autorisées : 1000, 2000, 10000, 15000, 30000 et 60000. Par défaut 60000, une fois par minute.",
-        "es": "Con qué frecuencia se leen los valores. Valores permitidos: 1000, 2000, 10000, 15000, 30000 y 60000. Por defecto 60000, una vez por minuto."
-      }
-    },
-    {
-      "key": "mqtt_intro",
-      "type": "section",
-      "label": {
-        "de": "MQTT – WattWächter-Messwerte bereitstellen",
-        "en": "MQTT – publish WattWächter readings",
-        "fr": "MQTT – publier les mesures WattWächter",
-        "es": "MQTT – publicar lecturas WattWächter"
+        "de": "Wie oft die WattWächter-Werte gelesen werden. Auswahl: 1, 5, 15, 30 oder 60 Minuten. Standard: 1 Minute.",
+        "en": "How often WattWächter readings are fetched. Choose 1, 5, 15, 30 or 60 minutes. Default: 1 minute.",
+        "fr": "Fréquence de lecture des valeurs WattWächter. Choisissez 1, 5, 15, 30 ou 60 minutes. Par défaut : 1 minute.",
+        "es": "Frecuencia de lectura de los valores WattWächter. Elige 1, 5, 15, 30 o 60 minutos. Predeterminado: 1 minuto."
       },
-      "description": {
-        "de": "Optional: Veröffentlicht WattWächter-Messwerte über den eingetragenen MQTT-Broker, damit sie in Gladys für virtuelle Geräte, Widgets und Automatisierungen genutzt werden können. Das Deaktivieren stoppt die Veröffentlichung, ohne gespeicherte Einstellungen zu löschen.",
-        "en": "Optional: publishes WattWächter readings through the configured MQTT broker for use by virtual devices, widgets and automations in Gladys. Disabling publishing does not delete saved settings.",
-        "fr": "Facultatif : publie les mesures WattWächter via le broker MQTT configuré pour les appareils virtuels, widgets et automatisations Gladys. La désactivation arrête la publication sans effacer les paramètres enregistrés.",
-        "es": "Opcional: publica lecturas WattWächter mediante el broker MQTT configurado para usarlas en dispositivos virtuales, widgets y automatizaciones de Gladys. Desactivar la publicación no borra la configuración guardada."
-      }
-    },
-    {
-      "key": "mqtt_enabled",
-      "type": "boolean",
-      "required": false,
-      "default": false,
-      "label": {
-        "de": "MQTT-Bereitstellung aktivieren",
-        "en": "Enable MQTT publishing",
-        "fr": "Activer la publication MQTT",
-        "es": "Activar publicación MQTT"
-      },
-      "description": {
-        "de": "Standardmäßig deaktiviert. Aktivieren, wenn die MQTT-Veröffentlichung mit den unten eingetragenen Broker-Daten starten soll.",
-        "en": "Disabled by default. Enable to start MQTT publishing using the broker details entered below.",
-        "fr": "Désactivé par défaut. Activez cette option pour démarrer la publication MQTT avec les paramètres du broker ci-dessous.",
-        "es": "Desactivado por defecto. Actívalo para iniciar la publicación MQTT con los datos del broker indicados abajo."
-      }
-    },
-    {
-      "key": "mqtt_host",
-      "type": "string",
-      "required": false,
-      "label": {
-        "de": "MQTT-Broker-Adresse / IP",
-        "en": "MQTT broker address / IP",
-        "fr": "Adresse / IP du broker MQTT",
-        "es": "Dirección / IP del broker MQTT"
-      },
-      "description": {
-        "de": "Adresse des MQTT-Brokers, zum Beispiel die IP deines Gladys-Servers.",
-        "en": "MQTT broker address, for example the IP address of your Gladys server.",
-        "fr": "Adresse du broker MQTT, par exemple l'adresse IP de votre serveur Gladys.",
-        "es": "Dirección del broker MQTT, por ejemplo la IP del servidor Gladys."
-      }
-    },
-    {
-      "key": "mqtt_port",
-      "type": "number",
-      "required": false,
-      "default": 1883,
-      "label": {
-        "de": "MQTT-Port",
-        "en": "MQTT port",
-        "fr": "Port MQTT",
-        "es": "Puerto MQTT"
-      },
-      "description": {
-        "de": "Standard 1883 für MQTT ohne TLS; bei TLS den Broker-Port verwenden.",
-        "en": "Default 1883 for MQTT without TLS; use the broker's TLS port when enabled.",
-        "fr": "Par défaut 1883 sans TLS ; utilisez le port TLS du broker si nécessaire.",
-        "es": "Por defecto 1883 sin TLS; usa el puerto TLS del broker cuando corresponda."
-      }
-    },
-    {
-      "key": "mqtt_username",
-      "type": "string",
-      "required": false,
-      "label": {
-        "de": "MQTT-Benutzername (optional)",
-        "en": "MQTT username (optional)",
-        "fr": "Nom d'utilisateur MQTT (facultatif)",
-        "es": "Usuario MQTT (opcional)"
-      },
-      "description": {
-        "de": "Leer lassen, wenn der Broker keine Anmeldung benötigt.",
-        "en": "Leave empty if the broker does not require authentication.",
-        "fr": "Laissez vide si le broker ne nécessite pas d'authentification.",
-        "es": "Déjalo vacío si el broker no requiere autenticación."
-      }
-    },
-    {
-      "key": "mqtt_password",
-      "type": "string",
-      "required": false,
-      "label": {
-        "de": "MQTT-Passwort (optional)",
-        "en": "MQTT password (optional)",
-        "fr": "Mot de passe MQTT (facultatif)",
-        "es": "Contraseña MQTT (opcional)"
-      },
-      "description": {
-        "de": "Wird nur für die MQTT-Anmeldung verwendet und darf nicht protokolliert werden.",
-        "en": "Used only for MQTT authentication and must never be logged.",
-        "fr": "Utilisé uniquement pour l'authentification MQTT et ne doit jamais être journalisé.",
-        "es": "Se usa solo para la autenticación MQTT y nunca debe registrarse en los logs."
-      }
-    },
-    {
-      "key": "mqtt_tls",
-      "type": "boolean",
-      "required": false,
-      "default": false,
-      "label": {
-        "de": "TLS/SSL verwenden",
-        "en": "Use TLS/SSL",
-        "fr": "Utiliser TLS/SSL",
-        "es": "Usar TLS/SSL"
-      },
-      "description": {
-        "de": "Aktivieren, wenn der Broker eine TLS-verschlüsselte Verbindung erwartet.",
-        "en": "Enable if the broker expects a TLS-encrypted connection.",
-        "fr": "Activez cette option si le broker exige une connexion chiffrée TLS.",
-        "es": "Actívalo si el broker requiere una conexión cifrada TLS."
-      }
-    },
-    {
-      "key": "mqtt_interval",
-      "type": "number",
-      "required": false,
-      "default": 60000,
-      "label": {
-        "de": "MQTT-Veröffentlichungsintervall in Millisekunden",
-        "en": "MQTT publishing interval in milliseconds",
-        "fr": "Intervalle de publication MQTT en millisecondes",
-        "es": "Intervalo de publicación MQTT en milisegundos"
-      },
-      "description": {
-        "de": "Geplantes Standardintervall: 60000 ms (eine Minute). Wird erst mit der MQTT-Veröffentlichung wirksam.",
-        "en": "Planned default: 60000 ms (one minute). Takes effect when MQTT publishing is implemented.",
-        "fr": "Valeur prévue par défaut : 60000 ms (une minute). Sera appliquée lorsque la publication MQTT sera implémentée.",
-        "es": "Valor previsto por defecto: 60000 ms (un minuto). Se aplicará cuando se implemente la publicación MQTT."
-      }
-    },
-    {
-      "key": "mqtt_topic_prefix",
-      "type": "string",
-      "required": false,
-      "default": "wattwaechter",
-      "label": {
-        "de": "MQTT-Topic-Präfix",
-        "en": "MQTT topic prefix",
-        "fr": "Préfixe de topic MQTT",
-        "es": "Prefijo de topic MQTT"
-      },
-      "description": {
-        "de": "Präfix für veröffentlichte Messwerte. Standard: wattwaechter.",
-        "en": "Prefix for published readings. Default: wattwaechter.",
-        "fr": "Préfixe des mesures publiées. Par défaut : wattwaechter.",
-        "es": "Prefijo de las lecturas publicadas. Por defecto: wattwaechter."
-      }
+      "options": [
+        {
+          "value": 1,
+          "label": {
+            "de": "1 Minute",
+            "en": "1 minute",
+            "fr": "1 minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": 5,
+          "label": {
+            "de": "5 Minuten",
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "es": "5 minutos"
+          }
+        },
+        {
+          "value": 15,
+          "label": {
+            "de": "15 Minuten",
+            "en": "15 minutes",
+            "fr": "15 minutes",
+            "es": "15 minutos"
+          }
+        },
+        {
+          "value": 30,
+          "label": {
+            "de": "30 Minuten",
+            "en": "30 minutes",
+            "fr": "30 minutes",
+            "es": "30 minutos"
+          }
+        },
+        {
+          "value": 60,
+          "label": {
+            "de": "60 Minuten",
+            "en": "60 minutes",
+            "fr": "60 minutes",
+            "es": "60 minutos"
+          }
+        }
+      ]
     },
     {
       "key": "power_max",
