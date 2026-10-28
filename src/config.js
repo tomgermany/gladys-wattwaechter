@@ -35,6 +35,14 @@ export const DEFAULT_CONFIG = {
   // something the user opts into, not something the integration assumes.
   power_max: 0,
   power_min: 0,
+  mqtt_enabled: false,
+  mqtt_host: '',
+  mqtt_port: 1883,
+  mqtt_username: '',
+  mqtt_password: '',
+  mqtt_tls: false,
+  mqtt_interval: 60000,
+  mqtt_topic_prefix: 'wattwaechter',
 };
 
 export function normalizeConfig(raw = {}) {
@@ -47,5 +55,13 @@ export function normalizeConfig(raw = {}) {
     read_token: String(raw.read_token ?? DEFAULT_CONFIG.read_token).trim(),
     power_max: Number(raw.power_max ?? DEFAULT_CONFIG.power_max),
     power_min: Number(raw.power_min ?? DEFAULT_CONFIG.power_min),
+    mqtt_enabled: raw.mqtt_enabled === true || raw.mqtt_enabled === 'true',
+    mqtt_host: String(raw.mqtt_host ?? DEFAULT_CONFIG.mqtt_host).trim(),
+    mqtt_port: Number(raw.mqtt_port ?? DEFAULT_CONFIG.mqtt_port),
+    mqtt_username: String(raw.mqtt_username ?? DEFAULT_CONFIG.mqtt_username),
+    mqtt_password: String(raw.mqtt_password ?? DEFAULT_CONFIG.mqtt_password),
+    mqtt_tls: raw.mqtt_tls === true || raw.mqtt_tls === 'true',
+    mqtt_interval: Number(raw.mqtt_interval ?? DEFAULT_CONFIG.mqtt_interval),
+    mqtt_topic_prefix: String(raw.mqtt_topic_prefix ?? DEFAULT_CONFIG.mqtt_topic_prefix).trim() || DEFAULT_CONFIG.mqtt_topic_prefix,
   };
 }
