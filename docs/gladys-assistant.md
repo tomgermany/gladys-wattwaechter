@@ -47,17 +47,33 @@ Der Port `502` ist der Standardport. Falls am Gerät ein anderer Port konfigurie
 
 ## Installation und Einrichtung
 
-1. In Gladys den Bereich **Integrationen** öffnen und **WattWächter Plus** installieren.
-2. Die Konfiguration der Integration öffnen.
+1. In Gladys den Bereich **Integrationen** öffnen und **WattWächter Plus** installieren:
+
+![Integration](..//images//install-1.png)
+
+![Integration](..//images//install-2.png)
+
+![Integration](..//images//install-3.png)
+
+  
+2. Die Konfiguration der Integration öffnet automatisch:
+
+ ![Integration](..//images//install-4.png)
+
 3. Als Adresse die IP-Adresse des WattWächters oder seinen mDNS-Namen eintragen, beispielsweise `192.168.0.6` oder `wattwaechter-xxxxxxxxxxxx.local`.
+
 4. Den Modbus-Port eintragen (standardmäßig `502`).
+
 5. Für die Verbrauchswerte über Zeiträume das **Lesetoken der REST-API** eintragen.
-6. **Verbindung testen** auswählen. Die Rückmeldung enthält unter anderem Modell, Firmware und verfügbare Messwerte.
-7. In Gladys den Bereich **Entdecken** öffnen, einen Scan starten und das gefundene Gerät hinzufügen.
+6. **Verbindung testen** auswählen. Die Rückmeldung enthält unter anderem Modell, Firmware und verfügbare Messwerte:
+
+ ![Integration](..//images//install-5.png)
+ 
+11. In Gladys den Bereich **Entdecken** öffnen, einen Scan starten und das gefundene Gerät hinzufügen.
 
 Ohne Lesetoken können die aktuellen Messwerte weiterhin gelesen werden. Lediglich Funktionen, die Verbrauchswerte über Zeiträume aus der REST-API abrufen, stehen dann nicht zur Verfügung.
 
-<!-- BILD-PLATZHALTER: Hier einen Screenshot der Konfiguration oder des Verbindungstests einfügen. -->
+ ![Integration](..//images//install-6.png)
 
 ## Verfügbare Messwerte
 
@@ -75,6 +91,9 @@ Welche Werte verfügbar sind, hängt vom angeschlossenen Stromzähler ab. Messwe
 
 ## Das Dashboard-Widget „Stromzähler“
 
+ ![Integration](..//images//install-8.png)
+
+
 Das Widget stellt zentrale Informationen übersichtlich auf dem Gladys-Dashboard dar:
 
 - **Aktuelle Leistung:** als große Kachel. Bei Einspeisung wird der negative Leistungswert angezeigt und die Kachel grün hervorgehoben.
@@ -83,7 +102,8 @@ Das Widget stellt zentrale Informationen übersichtlich auf dem Gladys-Dashboard
 
 Die Zeitraum-Schaltflächen lassen sich in den Widget-Einstellungen einzeln ein- oder ausblenden. Der ausgewählte Zeitraum wird hervorgehoben; der zugehörige Verbrauch wird in kWh angezeigt. In den Einstellungen können außerdem der verwendete Zähler und die Anzeigeeinheit für Zeitraumwerte ausgewählt werden.
 
-<!-- BILD-PLATZHALTER: Hier einen Screenshot des Gladys-Dashboard-Widgets einfügen. -->
+ ![Integration](..//images//install-9.png)
+
 
 ## Szenen verwenden
 
