@@ -382,7 +382,7 @@ gladys.onScanRequest(async () => {
 gladys.onPoll(async (polled) => {
   if (!modbus || !device) return;
   if (polled.external_id !== deviceExternalId(gladys, device)) return;
-  if (Date.now() - lastRead < config.poll_frequency * 1000 - 30000) return;
+  if (Date.now() - lastRead < config.poll_frequency * 60_000 - 30_000) return;
   await refresh();
 });
 
