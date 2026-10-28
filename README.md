@@ -3,8 +3,8 @@
 A [Gladys Assistant](https://gladysassistant.com/) external integration that reads your electricity
 meter through a **WattWächter Plus**, over your local network. No cloud, no account.
 
-**[Anwenderdokumentation auf Deutsch](docs/de.md)** · [Deutsch](docs/en.md) ·
-![Integration](docs/fr.md) · ![Integration](docs/es.md)
+**[Anwenderdokumentation auf Deutsch](docs/de.md)** · [Englisch](docs/en.md) ·
+[Französisch](docs/fr.md) · [Spanisch](docs/es.md)
 
 ![Integration](cover.png)
 
