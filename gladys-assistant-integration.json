@@ -115,10 +115,10 @@
         "es": "MQTT – publicar lecturas WattWächter"
       },
       "description": {
-        "de": "Optional: Veröffentlicht WattWächter-Messwerte über einen MQTT-Broker, damit sie in Gladys für virtuelle Geräte, Widgets und Automatisierungen genutzt werden können. Trage die Broker-Daten selbst ein. Das Deaktivieren stoppt die Veröffentlichung, ohne gespeicherte Einstellungen zu löschen. Die MQTT-Veröffentlichung wird in einem späteren Schritt aktiviert.",
-        "en": "Optional: publishes WattWächter readings through an MQTT broker for use by virtual devices, widgets and automations in Gladys. Enter the broker details yourself. Disabling publishing does not delete saved settings. MQTT publishing will be enabled in a later step.",
-        "fr": "Facultatif : publie les mesures WattWächter via un broker MQTT pour les appareils virtuels, widgets et automatisations Gladys. Saisissez vous-même les paramètres du broker. La désactivation arrête la publication sans effacer les paramètres enregistrés. La publication MQTT sera activée dans une étape ultérieure.",
-        "es": "Opcional: publica lecturas WattWächter mediante un broker MQTT para usarlas en dispositivos virtuales, widgets y automatizaciones de Gladys. Introduce los datos del broker manualmente. Desactivar la publicación no borra la configuración guardada. La publicación MQTT se activará en un paso posterior."
+        "de": "Optional: Veröffentlicht WattWächter-Messwerte über den eingetragenen MQTT-Broker, damit sie in Gladys für virtuelle Geräte, Widgets und Automatisierungen genutzt werden können. Das Deaktivieren stoppt die Veröffentlichung, ohne gespeicherte Einstellungen zu löschen.",
+        "en": "Optional: publishes WattWächter readings through the configured MQTT broker for use by virtual devices, widgets and automations in Gladys. Disabling publishing does not delete saved settings.",
+        "fr": "Facultatif : publie les mesures WattWächter via le broker MQTT configuré pour les appareils virtuels, widgets et automatisations Gladys. La désactivation arrête la publication sans effacer les paramètres enregistrés.",
+        "es": "Opcional: publica lecturas WattWächter mediante el broker MQTT configurado para usarlas en dispositivos virtuales, widgets y automatizaciones de Gladys. Desactivar la publicación no borra la configuración guardada."
       }
     },
     {
@@ -133,10 +133,10 @@
         "es": "Activar publicación MQTT"
       },
       "description": {
-        "de": "Standardmäßig aus. Solange die MQTT-Veröffentlichung noch nicht implementiert ist, hat diese Option noch keine Auswirkung auf Messwerte.",
-        "en": "Off by default. Until MQTT publishing is implemented, this option does not yet affect readings.",
-        "fr": "Désactivé par défaut. Tant que la publication MQTT n'est pas implémentée, cette option n'a pas encore d'effet sur les mesures.",
-        "es": "Desactivado por defecto. Hasta que se implemente la publicación MQTT, esta opción aún no afecta a las lecturas."
+        "de": "Standardmäßig deaktiviert. Aktivieren, wenn die MQTT-Veröffentlichung mit den unten eingetragenen Broker-Daten starten soll.",
+        "en": "Disabled by default. Enable to start MQTT publishing using the broker details entered below.",
+        "fr": "Désactivé par défaut. Activez cette option pour démarrer la publication MQTT avec les paramètres du broker ci-dessous.",
+        "es": "Desactivado por defecto. Actívalo para iniciar la publicación MQTT con los datos del broker indicados abajo."
       }
     },
     {
