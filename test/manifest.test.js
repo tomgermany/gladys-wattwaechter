@@ -14,12 +14,20 @@ test('the manifest config defaults match DEFAULT_CONFIG', () => {
   for (const field of manifest.config_schema ?? []) {
     if (field.default !== undefined) {
       assert.equal(
+        field.key === 'poll_frequency' ? Number(field.default) : field.default,
         DEFAULT_CONFIG[field.key],
-        field.default,
         `DEFAULT_CONFIG.${field.key} must match the manifest default`,
       );
     }
   }
+});
+
+test('poll interval uses minute choices and MQTT settings stay hidden', () => {
+  const poll = manifest.config_schema.find((field) => field.key === 'poll_frequency');
+  assert.equal(poll.type, 'select');
+  assert.equal(poll.default, '1');
+  assert.deepEqual(poll.options.map((option) => option.value), ['1', '5', '15', '30', '60']);
+  assert.ok(!manifest.config_schema.some((field) => field.key.startsWith('mqtt_')));
 });
 
 test('the manifest and the package agree on the version', () => {
@@ -66,6 +74,8 @@ test('option labels are language maps, unlike the device payload', () => {
 
   for (const field of withOptions) {
     for (const option of field.options ?? []) {
+      assert.equal(typeof option.value, 'string', `${field.key}: option value must be a string`);
+      assert.ok(option.value.length > 0, `${field.key}: option value must not be empty`);
       assert.equal(typeof option.label, 'object', `${field.key}: ${option.value}`);
       assert.ok(option.label.de, `${field.key}: ${option.value} needs a German label`);
     }

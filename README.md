@@ -3,10 +3,8 @@
 A [Gladys Assistant](https://gladysassistant.com/) external integration that reads your electricity
 meter through a **WattWächter Plus**, over your local network. No cloud, no account.
 
-**[Anwenderdokumentation auf Deutsch](docs/de.md)** · ![English](docs/en.md) ·
-![Français](docs/fr.md) · ![Español](docs/es.md)
-
-![community-badge](community-integration-badge.png)
+**[Anwenderdokumentation auf Deutsch](docs/de.md)** · [Englisch](docs/en.md) ·
+[Französisch](docs/fr.md) · [Spanisch](docs/es.md)
 
 ![Integration](cover.png)
 
@@ -45,7 +43,7 @@ Open the WattWächter's web interface, use the **API explorer**, pick `POST /api
 | Address | IP or mDNS name of the device, e.g. `192.168.0.6`. |
 | Modbus port | 502 unless you changed it in the device. |
 | Read token | The REST API read token, only needed for the period buttons. |
-| Refresh interval | How often the meter is read, 60 seconds minimum. |
+| Refresh interval | Choose 1, 5, 15, 30 or 60 minutes. |
 | Power limits | The two thresholds of the scene trigger. 0 disables a side. |
 
 ## How it works
