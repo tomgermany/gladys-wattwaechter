@@ -8,7 +8,7 @@ through a **WattWächter Plus**. Everything stays on your local network: no clou
 **The Modbus server is switched OFF by default in the WattWächter and has to be enabled first.**
 Without that step the device does not answer on port 502 and the integration can read nothing.
 
-Open the WattWächter's web interface, use the **API explorer**, pick the endpoint
+Open the WattWächter's web interface, use the **API explorer**, pick the endpoint 
 `POST /api/v1/settings` and send this body:
 
 ```json
